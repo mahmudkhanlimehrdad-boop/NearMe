@@ -1,8 +1,17 @@
 import { initializeApp } from 'firebase/app';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
+import { doc, getDocFromServer, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
+
+const rawFirestoreDatabaseId = (
+  import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID ||
+  firebaseConfigJson.firestoreDatabaseId ||
+  ''
+).trim();
+const normalizedFirestoreDatabaseId =
+  rawFirestoreDatabaseId === '(default)' ? '' : rawFirestoreDatabaseId;
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
@@ -12,8 +21,9 @@ const firebaseConfig = {
   messagingSenderId:
     import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
-  firestoreDatabaseId:
-    import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId,
+  measurementId:
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || firebaseConfigJson.measurementId,
+  firestoreDatabaseId: normalizedFirestoreDatabaseId,
 };
 
 export const isFirebaseConfigured = Boolean(
@@ -24,11 +34,24 @@ export const isFirebaseConfigured = Boolean(
 
 const app = initializeApp(firebaseConfig);
 
+export let analytics: Analytics | null = null;
+if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+  void isSupported()
+    .then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    })
+    .catch(() => {
+      analytics = null;
+    });
+}
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+  ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 export const storage = getStorage(app);
 
 export enum OperationType {
@@ -101,4 +124,4 @@ export async function testConnection(): Promise<{ state: FirebaseConnectionState
   }
 }
 
-export { firebaseConfig };
+export { app, firebaseConfig };

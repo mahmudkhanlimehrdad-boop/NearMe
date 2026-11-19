@@ -193,3 +193,35 @@ test('localization handles RTL/LTR, Jalali calendar, and 6-language formatting',
   const usd = formatLocalizedCurrency(19.99, 'en');
   assert.ok(usd.includes('19.99'));
 });
+
+import crypto from 'node:crypto';
+import {
+  verifyNearMeWebhookSignature,
+  verifyStripeWebhookSignature,
+  verifyWebhookRequest,
+} from './payments';
+
+test('payment webhook verification validates custom HMAC and Stripe timestamped signatures', () => {
+  const secret = 'test_webhook_secret_1234567890';
+  const payload = Buffer.from(JSON.stringify({ event: 'checkout.completed', uid: 'u1' }));
+
+  const customSig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  assert.equal(verifyNearMeWebhookSignature(payload, customSig, secret), true);
+  assert.equal(verifyNearMeWebhookSignature(payload, 'bad_sig', secret), false);
+
+  const ts = 1795000000;
+  const stripeSig = crypto.createHmac('sha256', secret).update(`${ts}.${payload.toString('utf8')}`).digest('hex');
+  const stripeHeader = `t=${ts},v1=${stripeSig}`;
+  assert.equal(verifyStripeWebhookSignature(payload, stripeHeader, secret, ts + 30), true);
+  assert.equal(verifyStripeWebhookSignature(payload, stripeHeader, secret, ts + 999), false);
+
+  assert.deepEqual(
+    verifyWebhookRequest(payload, { stripeSignature: stripeHeader }, secret, ts + 10),
+    { valid: true, provider: 'stripe' }
+  );
+  assert.deepEqual(
+    verifyWebhookRequest(payload, { nearmeSignature: customSig }, secret),
+    { valid: true, provider: 'custom' }
+  );
+  assert.equal(verifyWebhookRequest(payload, {}, secret).valid, false);
+});
