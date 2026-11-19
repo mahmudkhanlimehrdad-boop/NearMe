@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FirebaseError } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   updateProfile,
+  type User,
 } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { auth, googleProvider } from '../../services/firebase';
@@ -16,6 +20,71 @@ import { formatLocalizedDate } from '../../utils/localization';
 import { useApp } from '../../contexts/AppContext';
 import { NearMeLogo } from '../../components/NearMeLogo';
 import { LanguageSelector } from '../../components/LanguageSelector';
+import type { LanguageCode } from '../../types/nearme';
+
+function formatGoogleAuthError(err: unknown, language: LanguageCode, fallback: string): string {
+  const isFa = language === 'fa';
+  const code = err instanceof FirebaseError ? err.code : '';
+  const msg = err instanceof Error ? err.message : String(err || '');
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  if (code === 'auth/unauthorized-domain' || msg.includes('auth/unauthorized-domain')) {
+    return isFa
+      ? `دامنه فعلی (${host}) در Firebase مجاز نشده است. در Firebase Console به مسیر Authentication → Settings → Authorized domains بروید و دامنه ${host} را اضافه کنید.`
+      : `Current domain (${host}) is not authorized in Firebase Console → Authentication → Settings → Authorized domains.`;
+  }
+  if (code === 'auth/operation-not-allowed' || msg.includes('auth/operation-not-allowed')) {
+    return isFa
+      ? 'ورود با گوگل در Firebase Console فعال نیست. در مسیر Authentication → Sign-in method گزینه Google را فعال کنید.'
+      : 'Google Sign-In is disabled. Enable Google under Firebase Console → Authentication → Sign-in method.';
+  }
+  if (code === 'auth/popup-blocked' || msg.includes('auth/popup-blocked')) {
+    return isFa
+      ? 'پنجره ورود گوگل توسط مرورگر مسدود شد. لطفاً Pop-up را برای این سایت مجاز کنید یا لینک برنامه را در یک تب جدید باز کنید.'
+      : 'Google sign-in popup was blocked by your browser. Allow popups for this site or open the app in a new tab.';
+  }
+  if (
+    code === 'auth/popup-closed-by-user' ||
+    code === 'auth/cancelled-popup-request' ||
+    msg.includes('popup-closed-by-user')
+  ) {
+    return isFa
+      ? 'پنجره ورود گوگل پیش از تکمیل ورود بسته شد. دوباره تلاش کنید.'
+      : 'The Google sign-in window was closed before completing sign-in. Please try again.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return isFa
+      ? 'خطا در اتصال شبکه هنگام ارتباط با سرویس احراز هویت گوگل.'
+      : 'Network error while connecting to Google authentication.';
+  }
+  if (msg.includes('Missing or insufficient permissions') || msg.includes('PERMISSION_DENIED')) {
+    return isFa
+      ? 'احراز هویت گوگل انجام شد، اما دسترسی Firestore هنوز باز نشده است. قوانین فایل firestore.rules را در Firebase Console → Firestore Database → Rules منتشر (Publish) کنید.'
+      : 'Google sign-in succeeded, but Firestore blocked profile access. Publish firestore.rules in Firebase Console → Firestore Database → Rules.';
+  }
+  return msg || fallback;
+}
+
+async function completeGoogleSession(params: {
+  user: User;
+  birthDate: string;
+  language: LanguageCode;
+  refreshUserData: () => Promise<void>;
+  navigate: (path: string) => void;
+}) {
+  const existing = await getUserAccount(params.user.uid);
+  if (!existing) {
+    await initializeUserRecords({
+      uid: params.user.uid,
+      displayName: params.user.displayName || 'NearMe Member',
+      birthDate: params.birthDate,
+      emailVerified: params.user.emailVerified,
+      language: params.language,
+    });
+  }
+  await params.refreshUserData();
+  params.navigate(existing?.onboardingCompleted ? '/nearby' : '/onboarding');
+}
 
 export const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -30,6 +99,34 @@ export const RegisterPage: React.FC = () => {
   const [age18Confirmed, setAge18Confirmed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getRedirectResult(auth)
+      .then(async (cred) => {
+        if (!active || !cred?.user) return;
+        setLoading(true);
+        try {
+          await completeGoogleSession({
+            user: cred.user,
+            birthDate,
+            language,
+            refreshUserData,
+            navigate,
+          });
+        } catch (err) {
+          if (active) setError(formatGoogleAuthError(err, language, t('errors.generic')));
+        } finally {
+          if (active) setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (active) setError(formatGoogleAuthError(err, language, t('errors.generic')));
+      });
+    return () => {
+      active = false;
+    };
+  }, [birthDate, language, navigate, refreshUserData, t]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,27 +186,28 @@ export const RegisterPage: React.FC = () => {
 
   const handleGoogle = async () => {
     setError('');
-    if (!age18Confirmed || !isAdult18Plus(birthDate)) {
+    if (!isAdult18Plus(birthDate)) {
       setError(t('errors.under18'));
       return;
     }
     setLoading(true);
     try {
       const cred = await signInWithPopup(auth, googleProvider);
-      const existing = await getUserAccount(cred.user.uid);
-      if (!existing) {
-        await initializeUserRecords({
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || 'NearMe Member',
-          birthDate,
-          emailVerified: cred.user.emailVerified,
-          language,
-        });
-      }
-      await refreshUserData();
-      navigate(existing?.onboardingCompleted ? '/nearby' : '/onboarding');
+      await completeGoogleSession({
+        user: cred.user,
+        birthDate,
+        language,
+        refreshUserData,
+        navigate,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.generic'));
+      const code = err instanceof FirebaseError ? err.code : '';
+      const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+      if (code === 'auth/popup-blocked' && !inIframe) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      setError(formatGoogleAuthError(err, language, t('errors.generic')));
     } finally {
       setLoading(false);
     }
@@ -231,10 +329,11 @@ export const RegisterPage: React.FC = () => {
           <button
             type="button"
             disabled={loading}
+            aria-busy={loading}
             onClick={handleGoogle}
-            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] transition-colors"
+            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-60 transition-colors"
           >
-            {t('auth.googleSignIn')}
+            {loading ? t('common.loading') : t('auth.googleSignIn')}
           </button>
 
           <p className="text-[11px] text-slate-500 dark:text-[#A7AFBF]">{t('auth.phoneNotice')}</p>
@@ -260,6 +359,34 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    void getRedirectResult(auth)
+      .then(async (cred) => {
+        if (!active || !cred?.user) return;
+        setLoading(true);
+        try {
+          await completeGoogleSession({
+            user: cred.user,
+            birthDate: '1998-01-01',
+            language,
+            refreshUserData,
+            navigate,
+          });
+        } catch (err) {
+          if (active) setError(formatGoogleAuthError(err, language, t('errors.generic')));
+        } finally {
+          if (active) setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (active) setError(formatGoogleAuthError(err, language, t('errors.generic')));
+      });
+    return () => {
+      active = false;
+    };
+  }, [language, navigate, refreshUserData, t]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -270,7 +397,7 @@ export const LoginPage: React.FC = () => {
       await refreshUserData();
       navigate(acc?.onboardingCompleted ? '/nearby' : '/onboarding');
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.generic'));
+      setError(formatGoogleAuthError(err, language, t('errors.generic')));
     } finally {
       setLoading(false);
     }
@@ -281,20 +408,21 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       const cred = await signInWithPopup(auth, googleProvider);
-      const acc = await getUserAccount(cred.user.uid);
-      if (!acc) {
-        await initializeUserRecords({
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || 'NearMe Member',
-          birthDate: '1998-01-01',
-          emailVerified: cred.user.emailVerified,
-          language,
-        });
-      }
-      await refreshUserData();
-      navigate(acc?.onboardingCompleted ? '/nearby' : '/onboarding');
+      await completeGoogleSession({
+        user: cred.user,
+        birthDate: '1998-01-01',
+        language,
+        refreshUserData,
+        navigate,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.generic'));
+      const code = err instanceof FirebaseError ? err.code : '';
+      const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+      if (code === 'auth/popup-blocked' && !inIframe) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      setError(formatGoogleAuthError(err, language, t('errors.generic')));
     } finally {
       setLoading(false);
     }
@@ -365,10 +493,11 @@ export const LoginPage: React.FC = () => {
           <button
             type="button"
             disabled={loading}
+            aria-busy={loading}
             onClick={handleGoogleLogin}
-            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] transition-colors"
+            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-60 transition-colors"
           >
-            {t('auth.googleSignIn')}
+            {loading ? t('common.loading') : t('auth.googleSignIn')}
           </button>
 
           <div className="text-center text-xs text-slate-500 dark:text-[#A7AFBF]">

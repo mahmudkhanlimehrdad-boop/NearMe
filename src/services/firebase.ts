@@ -49,6 +49,7 @@ if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const db = firebaseConfig.firestoreDatabaseId
   ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, firebaseConfig.firestoreDatabaseId)
   : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
