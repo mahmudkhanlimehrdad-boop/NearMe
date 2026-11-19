@@ -1,0 +1,1662 @@
+# MASTER BUILD PROMPT
+# NearMe AI
+## International Dating, Nearby Discovery & Smart Matchmaking Platform
+
+You are a senior full-stack software engineer, software architect, UI/UX designer, Firebase specialist, security engineer, and product developer.
+
+Your task is to build a complete, production-oriented international dating web application called NearMe.
+
+This is a real application, not a static prototype or a collection of non-functional screens.
+
+Build the actual frontend, backend, authentication, database, GPS discovery, matchmaking, user profiles, photo gallery, social contact management, internal messaging, notifications, subscription infrastructure, and administration system.
+
+Do not replace real functionality with fake users, simulated GPS locations, hardcoded profiles, or fake API responses.
+
+When an external service requires configuration, implement the integration and clearly identify the missing credentials.
+
+==================================================
+1. PROJECT IDENTITY
+==================================================
+
+Product name: NearMe
+
+Product category:
+International Dating and Social Discovery Platform.
+
+Main objective:
+
+NearMe allows adults to discover compatible people nearby or anywhere in the world.
+
+The platform provides:
+
+- Real GPS-based discovery.
+- Adjustable search radius.
+- Global user discovery.
+- Advanced search filters.
+- Intelligent compatibility recommendations.
+- Like and mutual Match system.
+- Internal real-time messaging.
+- Complete user profile management.
+- Profile photo gallery.
+- Social media and contact information.
+- Advanced privacy controls.
+- Real-time notifications.
+- Free and VIP memberships.
+- Administration dashboard.
+
+Target audience: Adults aged 18+.
+
+Target market: International.
+
+Platform:
+Responsive Web Application and Progressive Web App (PWA).
+
+IMPORTANT ARCHITECTURAL DECISION:
+
+NearMe Version 1 must operate completely independently without requiring a Telegram bot.
+
+All primary functionality must be available directly inside the web application.
+
+Users must be able to:
+- Register.
+- Create accounts.
+- Upload photos.
+- Manage their profiles.
+- Add social media accounts.
+- Search for other users.
+- Like and Match.
+- Chat.
+- Manage privacy.
+- Receive notifications.
+- Purchase subscriptions.
+- Manage their accounts.
+
+Do not make Telegram integration mandatory.
+
+Telegram usernames and Telegram links are supported as optional profile contact information.
+
+An optional Telegram notification integration can be added as a separate future module.
+
+Do not scrape Telegram or search for arbitrary Telegram users.
+
+==================================================
+2. PREMIUM UI/UX DESIGN
+==================================================
+
+Create an original premium international dating interface.
+
+Design inspiration:
+- Tinder.
+- Bumble.
+- Hinge.
+- Premium SaaS interfaces.
+- Modern social networking applications.
+
+Do not copy their branding.
+
+Visual style:
+- Premium dark interface.
+- Optional light theme.
+- Elegant gradients.
+- Selective glassmorphism.
+- High-quality profile photography.
+- Smooth transitions.
+- Rounded profile cards.
+- Subtle glowing accents.
+- Modern icons.
+- Clean typography.
+- Animated interactions.
+- Beautiful empty states.
+
+Color palette:
+
+Primary background: #0D1018
+Secondary background: #171C28
+Card background: #202737
+Primary accent: #FF5277
+Secondary accent: #9B7BFF
+Highlight: #FF8EAA
+Primary text: #FFFFFF
+Secondary text: #A7AFBF
+Success: #35C98A
+Error: #F05265
+
+Typography:
+- English: Inter.
+- Persian: Vazirmatn.
+- Arabic: Noto Sans Arabic.
+- Turkish: Inter.
+- Simplified Chinese: Noto Sans SC.
+- Traditional Chinese: Noto Sans TC.
+
+Create:
+- NearMe logo.
+- Favicon.
+- PWA icons.
+- Loading animations.
+- Login branding.
+- Match celebration graphics.
+
+The interface must be mobile-first and fully responsive.
+
+==================================================
+3. SIX-LANGUAGE SUPPORT
+==================================================
+
+Support these six languages:
+
+1. Persian (fa)
+2. English (en)
+3. Turkish (tr)
+4. Arabic (ar)
+5. Simplified Chinese (zh-CN)
+6. Traditional Chinese (zh-TW)
+
+Requirements:
+
+- Automatic browser language detection.
+- Manual language selection.
+- Persistent language preference.
+- Native language names.
+- Instant language switching without page reload.
+- Complete translation of all application sections.
+- Localized dates, numbers, and currencies.
+- Persian calendar support.
+
+RTL:
+Persian and Arabic.
+
+LTR:
+English, Turkish, and Chinese.
+
+Implement complete RTL/LTR support across all components.
+
+Use structured translation files.
+
+Do not translate only the navigation. Translate forms, errors, notifications, dialogs, settings, and all interface elements.
+
+==================================================
+4. TECHNICAL ARCHITECTURE
+==================================================
+
+Frontend:
+- React.
+- TypeScript.
+- Vite.
+- Tailwind CSS.
+- Framer Motion.
+- Lucide Icons.
+- React Router.
+- i18next.
+- React-i18next.
+
+Backend:
+- Firebase Authentication.
+- Cloud Firestore.
+- Firebase Cloud Functions.
+- Firebase Storage.
+- Firebase Cloud Messaging.
+
+Use the Firebase JavaScript SDK.
+
+Use server-side Cloud Functions for sensitive operations.
+
+Use geohash-based location queries.
+
+Do not use Supabase.
+
+Do not use n8n.
+
+Do not expose private credentials in frontend code.
+
+Organize the code into reusable components, services, hooks, pages, and modules.
+
+Create a scalable architecture.
+
+==================================================
+5. MAIN NAVIGATION
+==================================================
+
+Create five primary navigation sections:
+
+1. Nearby
+2. Discover
+3. Likes
+4. Messages
+5. Profile
+
+Mobile:
+Animated bottom navigation.
+
+Desktop:
+Modern sidebar or top navigation.
+
+Show:
+- Active section.
+- Unread messages.
+- New Match notifications.
+- Profile status.
+
+Every navigation item must work.
+
+==================================================
+6. AUTHENTICATION AND ONBOARDING
+==================================================
+
+Implement real authentication.
+
+Registration methods:
+- Email and password.
+- Google authentication.
+- Phone authentication when configured.
+
+Features:
+- Email verification.
+- Password recovery.
+- Secure login.
+- Logout.
+- Session management.
+- Account deletion.
+
+Onboarding:
+
+Step 1: Welcome.
+
+Step 2: Account registration.
+
+Step 3: Personal information:
+- Display name.
+- Date of birth.
+- Gender.
+- Preferred gender.
+- Country.
+- City.
+- Languages.
+
+Step 4: Profile creation:
+- Main profile photo.
+- Additional photos.
+- Biography.
+- Interests.
+- Hobbies.
+- Languages.
+- Occupation (optional).
+
+Step 5: Dating preferences:
+- Minimum age.
+- Maximum age.
+- Preferred gender.
+- Preferred country.
+- Preferred city.
+- Relationship goals.
+- Preferred languages.
+- Interests.
+
+Step 6: Permissions:
+- Location permission.
+- Browser notifications.
+- Optional future integrations.
+
+Require users to confirm they are at least 18.
+
+Validate age on the backend.
+
+Do not rely only on a frontend checkbox.
+
+==================================================
+7. COMPLETE USER PROFILE SYSTEM
+==================================================
+
+Create a professional user profile management system.
+
+Each user must have a dedicated profile management dashboard.
+
+Profile sections:
+
+A. Personal information:
+- Profile photo.
+- Display name.
+- Date of birth.
+- Automatically calculated age.
+- Gender.
+- Country.
+- City.
+- Biography.
+- Interests.
+- Hobbies.
+- Languages.
+- Relationship goals.
+- Occupation (optional).
+
+B. Photo gallery.
+
+C. Social media and contact information.
+
+D. Privacy settings.
+
+E. Dating preferences.
+
+F. Account settings.
+
+Users must be able to edit their information whenever they want.
+
+Show a profile completion indicator based on actual completed fields.
+
+Never display private information without permission.
+
+==================================================
+8. PROFILE PHOTO GALLERY
+==================================================
+
+Implement a complete photo gallery management system.
+
+Maximum number of photos per user: 10.
+
+Gallery features:
+
+- Upload up to 10 photos.
+- Select a main profile photo.
+- Change the main photo.
+- Upload multiple images.
+- Preview images before saving.
+- Crop images.
+- Adjust image positioning.
+- Reorder images.
+- Delete images.
+- Replace images.
+- Set individual photo visibility.
+- Display photos in profile pages.
+- Display permitted photos in discovery cards.
+
+Photo visibility options:
+
+1. Public.
+2. Matches only.
+3. Private.
+
+The main profile photo must follow the visibility rules selected by the user.
+
+Photo upload requirements:
+
+- Firebase Storage.
+- Maximum file size configuration.
+- JPEG, PNG, and WebP support.
+- MIME type validation.
+- Image compression.
+- Thumbnail generation.
+- Secure storage paths.
+- Upload progress indicators.
+- Error handling.
+
+Use Firebase Storage Security Rules.
+
+Do not expose private photo download URLs to unauthorized users.
+
+A private photo must only be accessible to its owner.
+
+A Match-only photo must only be accessible to eligible mutual Matches.
+
+Implement photo reporting and moderation.
+
+Do not display fake user photographs.
+
+==================================================
+9. SOCIAL MEDIA AND CONTACT MANAGEMENT
+==================================================
+
+This is a core feature of NearMe.
+
+Create a dedicated profile section named:
+
+"My Contact Information"
+
+Persian title:
+«راه‌های ارتباطی من»
+
+Users must be able to add, edit, delete, enable, and disable each contact method independently.
+
+Supported contact methods:
+
+1. Instagram
+2. Telegram
+3. WhatsApp
+4. Website
+5. Email
+6. Mobile phone number
+
+Instagram:
+- Username.
+- Instagram profile URL.
+- Example: @username.
+
+Telegram:
+- Telegram username.
+- Telegram profile link.
+- Example: @username or https://t.me/username.
+
+WhatsApp:
+- International phone number.
+- WhatsApp link.
+- Example: https://wa.me/989xxxxxxxxx.
+
+Website:
+- Website URL.
+- Example: https://example.com.
+
+Email:
+- Valid email address.
+- Example: name@example.com.
+
+Mobile:
+- International phone number.
+- Example: +98xxxxxxxxxx.
+
+USER EXPERIENCE:
+
+Create an elegant contact management interface.
+
+Display each contact method with:
+- Official-style icon.
+- Contact name.
+- Input field.
+- Add button.
+- Edit button.
+- Delete button.
+- Visibility setting.
+- Enable/disable switch.
+
+Example interface:
+
+My Contact Information
+
+Instagram
+[@username]
+[Add]
+
+Telegram
+[@username or profile URL]
+[Add]
+
+WhatsApp
+[Phone number or WhatsApp link]
+[Add]
+
+Website
+[https://example.com]
+[Add]
+
+Email
+[name@example.com]
+[Add]
+
+Mobile
+[+98...]
+[Add]
+
+Allow users to save changes independently.
+
+Do not require users to complete all contact fields.
+
+All contact methods are optional.
+
+==================================================
+10. ADVANCED CONTACT PRIVACY SETTINGS
+==================================================
+
+Every contact method must have its own independent privacy configuration.
+
+For each contact field, provide three visibility levels:
+
+1. PUBLIC
+
+All users who are authorized to view the profile can see this contact information.
+
+2. MATCHES ONLY
+
+Only users with an active mutual Match can see this information.
+
+3. PRIVATE
+
+Only the account owner can see this information.
+
+Default privacy:
+
+Instagram: Private.
+Telegram: Private.
+WhatsApp: Private.
+Website: Private.
+Email: Private.
+Mobile phone: Private.
+
+Important privacy requirements:
+
+- Email must be private by default.
+- Mobile number must be private by default.
+- Every contact method requires separate user approval before becoming visible.
+- Every field must be independently editable.
+- Users must be able to revoke visibility at any time.
+- Users must be able to delete contact information.
+- Never show private contacts in search results.
+- Never include contact information in discovery cards.
+- Never expose contacts in public profile API responses.
+- Never include private contacts in matchmaking calculations.
+- Never reveal contact details to blocked users.
+- Removing a Match must immediately revoke Match-only access.
+- Blocking another user must revoke their access.
+
+Store contact information separately from public profile documents.
+
+Suggested Firestore structure:
+
+users/{uid}/private_data/contact_information
+
+Example schema:
+
+{
+  instagram: {
+    value: "@username",
+    visibility: "private",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  },
+
+  telegram: {
+    value: "https://t.me/username",
+    visibility: "matches",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  },
+
+  whatsapp: {
+    value: "+989xxxxxxxxx",
+    visibility: "private",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  },
+
+  website: {
+    value: "https://example.com",
+    visibility: "public",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  },
+
+  email: {
+    value: "name@example.com",
+    visibility: "private",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  },
+
+  mobile: {
+    value: "+989xxxxxxxxx",
+    visibility: "private",
+    enabled: true,
+    updatedAt: "serverTimestamp"
+  }
+}
+
+Implement server-side access control.
+
+Never rely on frontend-only privacy checks.
+
+Create a secure backend function:
+
+getAuthorizedProfileContacts(profileOwnerUid)
+
+The function must:
+
+1. Authenticate the requesting user.
+2. Identify the profile owner.
+3. Check whether the requesting user is the owner.
+4. Check whether an active mutual Match exists.
+5. Check whether either account has blocked the other.
+6. Read the individual privacy settings.
+7. Return only the fields the requester is authorized to see.
+8. Exclude all unauthorized fields.
+
+Do not return the complete contact document and hide fields with CSS.
+
+Only return authorized contact information from the backend.
+
+Validate and sanitize every contact value.
+
+URL security:
+
+- Allow HTTPS links.
+- Validate domains and URL formats.
+- Reject javascript: URLs.
+- Reject data: URLs.
+- Reject unsafe redirect destinations.
+- Sanitize user input.
+- Validate email formats.
+- Validate international phone numbers.
+- Normalize WhatsApp numbers.
+- Validate Telegram usernames and links.
+- Validate Instagram usernames and URLs.
+
+==================================================
+11. CONTACT AFTER MATCH
+==================================================
+
+Create a dedicated profile section named:
+
+"Contact Me"
+
+Persian:
+«ارتباط با من»
+
+This section must display approved social media icons according to the profile owner's privacy settings.
+
+Behavior:
+
+Before Match:
+
+- Public contact methods are visible only when their owner explicitly enables public visibility.
+- Match-only contact methods remain hidden.
+- Private contact methods remain hidden.
+- Never reveal private email or phone numbers.
+
+After mutual Match:
+
+- Show contact methods configured as Matches Only.
+- Show Public contact methods.
+- Keep Private contact methods hidden.
+- Respect the profile owner's latest privacy settings.
+
+When the user selects a contact icon:
+
+Instagram:
+Open the authorized Instagram profile.
+
+Telegram:
+Open the authorized Telegram profile or link.
+
+WhatsApp:
+Open the authorized WhatsApp conversation link.
+
+Website:
+Open the authorized website.
+
+Email:
+Open the email application using the authorized email address.
+
+Mobile:
+Offer a phone call action only when the owner has permitted access.
+
+Use appropriate external links.
+
+Open external links safely.
+
+Do not expose contact details in browser URLs, analytics events, or application logs.
+
+If the owner changes a contact from Matches Only to Private, revoke access immediately.
+
+The contact section must be visually attractive and consistent with the NearMe design system.
+
+==================================================
+12. NEARBY: REAL GPS DISCOVERY
+==================================================
+
+Implement real GPS-based discovery.
+
+Use the browser Geolocation API.
+
+Users must explicitly enable Nearby mode.
+
+When permission is granted:
+
+1. Obtain actual device coordinates.
+2. Send coordinates to an authenticated backend function.
+3. Validate the authenticated user.
+4. Store location securely.
+5. Save update timestamps.
+6. Search eligible nearby profiles.
+7. Apply user preferences.
+8. Return approximate distances.
+
+Do not use hardcoded coordinates.
+
+Do not create fake nearby users.
+
+Location privacy:
+
+- Never expose exact coordinates.
+- Return approximate distances only.
+- Never show exact user positions.
+- Prevent location triangulation.
+- Expire stale location records.
+- Stop tracking when Nearby is disabled.
+- Do not implement continuous background tracking.
+- Do not log precise coordinates.
+
+Use geohash indexing and server-side distance calculations.
+
+==================================================
+13. ADJUSTABLE SEARCH RADIUS
+==================================================
+
+Create a distance selector.
+
+Available options:
+
+1 km
+2 km
+3 km
+5 km
+10 km
+20 km
+30 km
+50 km
+
+Also provide a slider from 1 to 50 km.
+
+The selected radius must affect real backend queries.
+
+Remember the user's last selection.
+
+Smart radius expansion:
+
+If insufficient users are found, display:
+
+"Not enough people nearby. Would you like to expand your search?"
+
+Offer:
+- 2 km.
+- 3 km.
+- 5 km.
+- 10 km.
+- 20 km.
+
+Never expand without approval.
+
+Display actual backend result counts.
+
+==================================================
+14. NEARBY DISCOVERY INTERFACE
+==================================================
+
+Create two discovery modes.
+
+A. Nearby Cards
+
+Show:
+- Main profile photo.
+- Name.
+- Age.
+- Biography.
+- Interests.
+- Approximate distance.
+- Verification status.
+- Online status when available.
+- Like.
+- Pass.
+- View profile.
+
+Support swipe gestures on mobile and mouse interactions on desktop.
+
+B. Nearby Radar
+
+Create an animated circular radar.
+
+Features:
+- Dark background.
+- Radar rings.
+- Animated scanning line.
+- Avatar indicators.
+- Glowing effects.
+- Profile selection.
+
+Radar positions must not expose actual geographic coordinates.
+
+==================================================
+15. GLOBAL DISCOVER
+==================================================
+
+Create a global discovery system.
+
+Filters:
+- Gender.
+- Age.
+- Country.
+- City.
+- Language.
+- Interests.
+- Relationship goals.
+- Online status.
+- Verification status.
+
+Views:
+- Grid.
+- Cards.
+- Profile details.
+
+Sorting:
+- Relevance.
+- Distance.
+- Recent activity.
+
+Use only real registered profiles.
+
+Exclude:
+- Deleted accounts.
+- Suspended accounts.
+- Blocked users.
+- Hidden profiles.
+- Ineligible profiles.
+
+Do not display contact information in global search results.
+
+==================================================
+16. MATCHMAKING ENGINE
+==================================================
+
+Implement a real compatibility engine.
+
+Consider:
+- Mutual gender preferences.
+- Age preferences.
+- Shared interests.
+- Languages.
+- Relationship goals.
+- Distance preferences.
+- Activity.
+- Profile completeness.
+
+Display a compatibility percentage as a recommendation, not a scientific prediction.
+
+Provide explanations such as:
+
+"You both enjoy traveling, music, and photography."
+
+Do not use sensitive personal attributes in scoring.
+
+==================================================
+17. LIKE, PASS AND MATCH
+==================================================
+
+Implement:
+
+- Like.
+- Pass.
+- Super Like.
+- Undo Like where permitted.
+- Mutual Match.
+- Remove Match.
+- Block.
+- Report.
+
+A Match is created only when both users have liked one another.
+
+Use secure backend transactions.
+
+After Match:
+
+- Create a Match record.
+- Notify both users.
+- Show an animated celebration.
+- Enable internal messaging.
+- Enable authorized Match-only profile content.
+- Enable authorized Match-only contact information.
+
+Prevent duplicate Matches and interaction spam.
+
+==================================================
+18. INTERNAL MESSAGING
+==================================================
+
+Build a real-time messaging system.
+
+Only matched users can start conversations.
+
+Features:
+- Text messages.
+- Emoji.
+- Image attachments.
+- Timestamps.
+- Read receipts.
+- Typing indicators.
+- Online status.
+- Conversation list.
+- Unread message count.
+- Delete conversation.
+- Block.
+- Report.
+
+Use Firestore real-time listeners.
+
+Validate conversation membership on the backend.
+
+Prevent messaging between blocked users.
+
+The messaging system must operate entirely inside NearMe.
+
+Telegram is not required.
+
+==================================================
+19. NOTIFICATIONS
+==================================================
+
+Implement:
+
+- New Match.
+- New message.
+- New like.
+- Profile verification.
+- Subscription updates.
+- Security alerts.
+
+Use:
+- In-app notifications.
+- Firebase Cloud Messaging.
+- Browser push notifications.
+
+Allow independent notification preferences.
+
+Request browser notification permission only after explaining the purpose.
+
+==================================================
+20. FREE AND VIP MEMBERSHIPS
+==================================================
+
+Create two membership levels.
+
+FREE:
+
+- Profile creation.
+- Profile photo gallery.
+- Social contact management.
+- Nearby discovery.
+- Adjustable radius.
+- Global discovery.
+- Limited daily likes.
+- Mutual Match.
+- Internal messaging.
+- Standard notifications.
+- Basic privacy settings.
+
+VIP:
+
+- Higher or unlimited daily likes.
+- Advanced search filters.
+- See users who liked you.
+- More Super Likes.
+- Advanced compatibility recommendations.
+- Premium profile customization.
+- Additional discovery features.
+- Advanced messaging conveniences.
+
+Create a professional subscription page.
+
+Plans:
+- Monthly.
+- Quarterly.
+- Annual.
+
+Implement real payment provider integration.
+
+Requirements:
+- Secure checkout.
+- Server-side verification.
+- Verified payment webhooks.
+- Subscription activation after confirmed payment.
+- Expiration.
+- Renewal.
+- Cancellation.
+- Payment history.
+
+Never simulate successful payments.
+
+If credentials are missing, clearly display the configuration status.
+
+==================================================
+21. USER VERIFICATION AND MODERATION
+==================================================
+
+Implement:
+
+- Email verification.
+- Phone verification when configured.
+- Optional selfie verification.
+- Profile photo moderation.
+- User reporting.
+- Account blocking.
+- Spam prevention.
+- Age verification.
+- Admin review.
+- Account suspension.
+- Permanent bans.
+
+Never show a verification badge without a real verification process.
+
+Create photo moderation workflows.
+
+==================================================
+22. ADMIN DASHBOARD
+==================================================
+
+Create a separate administrator dashboard.
+
+Dashboard statistics must come from real database queries.
+
+Display:
+- Total registered users.
+- Active users.
+- Online users.
+- Verified profiles.
+- Total Matches.
+- Total messages.
+- New registrations.
+- VIP subscriptions.
+- Reported accounts.
+
+Admin modules:
+
+A. User management.
+- Search users.
+- View profiles.
+- Review accounts.
+- Suspend accounts.
+- Ban accounts.
+- Restore accounts.
+
+B. Moderation.
+- Review reports.
+- Review photos.
+- Review complaints.
+- Record moderation decisions.
+
+C. Subscriptions.
+- View subscriptions.
+- Review payments.
+- Manage membership plans.
+
+D. Platform settings.
+- Languages.
+- Search limits.
+- Radius limits.
+- Membership plans.
+- Notification settings.
+
+E. Analytics.
+- Registration trends.
+- Daily active users.
+- Match activity.
+- Subscription statistics.
+
+F. Privacy management.
+- Review privacy complaints.
+- Manage reported content.
+- Review abusive behavior.
+
+Protect all administrator functions using server-side authorization.
+
+Record admin actions in audit logs.
+
+Never create default public admin credentials.
+
+==================================================
+23. FIRESTORE DATABASE ARCHITECTURE
+==================================================
+
+Create a complete Firestore schema.
+
+Suggested collections:
+
+users
+profiles
+user_locations
+preferences
+likes
+matches
+conversations
+messages
+notifications
+subscriptions
+payments
+reports
+blocked_users
+admin_settings
+audit_logs
+
+Additional nested collections:
+
+users/{uid}/private_data/contact_information
+
+users/{uid}/private_data/account_settings
+
+profiles/{uid}/photos
+
+Separate public profile information from private account information.
+
+Important:
+
+Public profile documents must never contain:
+- Private email.
+- Private mobile number.
+- Private social media links.
+- Exact GPS coordinates.
+- Authentication secrets.
+
+Contact information must be stored in a protected document.
+
+Suggested profile structure:
+
+profiles:
+- uid
+- displayName
+- birthDate
+- gender
+- biography
+- country
+- city
+- interests
+- languages
+- relationshipGoals
+- mainPhoto
+- photos
+- verificationStatus
+- profileVisibility
+- createdAt
+- updatedAt
+
+Photo structure:
+
+- photoId
+- storagePath
+- thumbnailPath
+- isMain
+- sortOrder
+- visibility
+- moderationStatus
+- createdAt
+
+Preferences:
+
+- uid
+- minimumAge
+- maximumAge
+- preferredGender
+- preferredLanguages
+- relationshipGoals
+- searchRadius
+- nearbyEnabled
+
+Private contact document:
+
+- instagram
+- telegram
+- whatsapp
+- website
+- email
+- mobile
+
+Each contact field must contain:
+- value
+- visibility
+- enabled
+- updatedAt
+
+Visibility values:
+
+public
+matches
+private
+
+Define all required Firestore indexes, security rules, relationships, validation, and retention policies.
+
+==================================================
+24. FIREBASE SECURITY AND PRIVACY
+==================================================
+
+Implement:
+
+- Firebase Authentication.
+- Firestore Security Rules.
+- Storage Security Rules.
+- Cloud Functions authorization.
+- Input validation.
+- Output sanitization.
+- Rate limiting.
+- Secure sessions.
+- Secret management.
+- Payment validation.
+- Account deletion.
+- Privacy controls.
+
+Contact security:
+
+- Private contact documents are owner-only by default.
+- Other users must not read contact documents directly.
+- Contact access must go through an authorized backend function.
+- Match verification must happen server-side.
+- Block status must be checked server-side.
+- Every contact field must be filtered independently.
+- Never trust frontend visibility settings.
+- Never expose contact details through public APIs.
+
+Photo security:
+
+- Private images are owner-only.
+- Match-only images require an active mutual Match.
+- Public images follow the owner's visibility choice.
+- Validate all uploads.
+- Reject unsupported file types.
+
+Location security:
+
+- Location sharing OFF by default.
+- Explicit user consent.
+- Restricted backend access.
+- No public coordinates.
+- No background tracking.
+- Immediate deactivation.
+
+Support GDPR-related privacy requirements where applicable.
+
+Provide:
+- Privacy policy.
+- Terms of service.
+- Account deletion.
+- Data access controls.
+- Consent management.
+
+==================================================
+25. PWA REQUIREMENTS
+==================================================
+
+Create a complete installable Progressive Web App.
+
+Required:
+- manifest.json.
+- Service worker.
+- Application icons.
+- Splash screen.
+- Offline application shell.
+- Install prompt.
+- Responsive layouts.
+- Touch-friendly controls.
+- Safe-area support.
+- Optimized images.
+- Lazy loading.
+
+Do not pretend that real-time messaging or GPS discovery works offline.
+
+==================================================
+26. REQUIRED APPLICATION PAGES
+==================================================
+
+PUBLIC PAGES:
+
+1. Landing page.
+2. Welcome page.
+3. Registration.
+4. Login.
+5. Password recovery.
+6. Terms of service.
+7. Privacy policy.
+8. Contact page.
+
+USER PAGES:
+
+9. Onboarding.
+10. Nearby.
+11. Nearby Radar.
+12. Discover.
+13. Search filters.
+14. User profile.
+15. Likes.
+16. Matches.
+17. Conversations.
+18. Chat.
+19. Notifications.
+20. My profile.
+21. Edit profile.
+22. Photo gallery management.
+23. Social contact management.
+24. Contact privacy settings.
+25. Location settings.
+26. Dating preferences.
+27. Account settings.
+28. Language settings.
+29. Subscription.
+30. Payment history.
+
+ADMIN PAGES:
+
+31. Admin dashboard.
+32. User management.
+33. Reports and moderation.
+34. Photo moderation.
+35. Subscription management.
+36. Analytics.
+37. Platform settings.
+38. Audit logs.
+
+Every page must have functional navigation and real data integration.
+
+==================================================
+27. BACKEND CLOUD FUNCTIONS
+==================================================
+
+Implement secure Cloud Functions for:
+
+- Registration validation.
+- Profile creation.
+- Profile updates.
+- Photo upload validation.
+- Photo deletion.
+- Photo visibility management.
+- Contact information updates.
+- Contact privacy updates.
+- Authorized contact retrieval.
+- Location updates.
+- Nearby search.
+- Radius expansion.
+- Global discovery.
+- Like creation.
+- Mutual Match creation.
+- Match notifications.
+- Conversation creation.
+- Message authorization.
+- Payment verification.
+- Subscription activation.
+- User reporting.
+- Account blocking.
+- Account deletion.
+- Administrator operations.
+
+Important contact functions:
+
+updateContactInformation
+updateContactPrivacy
+getAuthorizedProfileContacts
+deleteContactInformation
+
+Important photo functions:
+
+uploadProfilePhoto
+deleteProfilePhoto
+updatePhotoVisibility
+setMainProfilePhoto
+reorderProfilePhotos
+
+Validate all requests.
+
+Use authenticated requests.
+
+Never trust client-provided user IDs for sensitive operations.
+
+Use server timestamps.
+
+Return structured errors.
+
+==================================================
+28. ENVIRONMENT CONFIGURATION
+==================================================
+
+Create a documented .env.example file.
+
+Firebase public configuration:
+
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+
+Server-side secrets:
+
+PAYMENT_PROVIDER_SECRET
+PAYMENT_WEBHOOK_SECRET
+ADMIN_BOOTSTRAP_SECRET
+
+Never expose private secrets through VITE_ variables.
+
+Use Firebase Secret Manager for server credentials.
+
+Provide setup instructions for:
+
+- Firebase project.
+- Authentication providers.
+- Firestore.
+- Firebase Storage.
+- Cloud Functions.
+- Firestore indexes.
+- Security Rules.
+- Firebase Hosting.
+- Push notifications.
+- Payment provider.
+- Domain and HTTPS.
+
+Do not require Telegram credentials for Version 1.
+
+==================================================
+29. TESTING AND QUALITY ASSURANCE
+==================================================
+
+Create tests for:
+
+Authentication:
+- Registration.
+- Login.
+- Logout.
+- Password recovery.
+- Authorization.
+
+Profile:
+- Profile creation.
+- Profile editing.
+- Profile visibility.
+
+Photo gallery:
+- Upload.
+- Maximum 10 photos.
+- Main photo selection.
+- Reordering.
+- Deletion.
+- Visibility permissions.
+- Unauthorized access prevention.
+
+Contact information:
+- Add Instagram.
+- Add Telegram.
+- Add WhatsApp.
+- Add website.
+- Add email.
+- Add mobile number.
+- Edit contact fields.
+- Delete contact fields.
+- Privacy configuration.
+- Public access.
+- Match-only access.
+- Private access.
+- Revoked access.
+- Blocked-user access prevention.
+
+Nearby:
+- GPS permissions.
+- Location updates.
+- Location expiration.
+- Nearby search.
+- Radius filtering.
+- Radius expansion.
+
+Matchmaking:
+- Like.
+- Mutual Match.
+- Duplicate prevention.
+- Blocked-user exclusion.
+
+Messaging:
+- Conversation authorization.
+- Message delivery.
+- Read status.
+
+Payments:
+- Payment verification.
+- Subscription activation.
+- Expiration.
+
+Languages:
+- Six translations.
+- RTL/LTR.
+- Language persistence.
+
+Security:
+- Unauthorized access.
+- Admin authorization.
+- Private contact exposure prevention.
+- Private photo exposure prevention.
+- Location exposure prevention.
+
+Never report tests as passed unless they actually run and pass.
+
+==================================================
+30. STRICT NO-DEMO POLICY
+==================================================
+
+Mandatory:
+
+1. Do not generate fake registered users.
+2. Do not generate fake nearby users.
+3. Do not fabricate GPS coordinates.
+4. Do not invent distances.
+5. Do not create fake Matches.
+6. Do not simulate messages.
+7. Do not simulate successful payments.
+8. Do not fabricate verification badges.
+9. Do not expose private contact information.
+10. Do not use hardcoded production responses.
+11. Do not display fake online users.
+12. Do not report successful integration without verification.
+
+When Firebase or another service is not configured:
+
+- Display the actual connection status.
+- Identify missing configuration.
+- Explain required setup.
+- Keep unrelated working modules operational.
+
+Use real Firebase data exclusively for application content.
+
+When the database is empty, show professional empty states.
+
+==================================================
+31. IMPLEMENTATION WORKFLOW
+==================================================
+
+Do not stop at planning.
+
+Start implementing the actual application.
+
+Follow this order:
+
+PHASE 1:
+Build the design system, responsive navigation, landing page, and six-language architecture.
+
+PHASE 2:
+Implement Firebase configuration, authentication, onboarding, database structure, and security rules.
+
+PHASE 3:
+Implement complete profile management, photo gallery, photo permissions, and Firebase Storage.
+
+PHASE 4:
+Implement social media contact management, independent privacy settings, secure contact retrieval, and the Contact Me section.
+
+PHASE 5:
+Implement actual GPS access, geohash queries, Nearby discovery, adjustable radius, and smart radius expansion.
+
+PHASE 6:
+Implement Global Discover, search filters, matchmaking, Likes, and mutual Matches.
+
+PHASE 7:
+Implement real-time internal messaging and notifications.
+
+PHASE 8:
+Implement VIP subscriptions and payment provider integration.
+
+PHASE 9:
+Implement administrator dashboard, analytics, moderation, and security management.
+
+PHASE 10:
+Implement PWA installation, performance optimization, testing, and deployment configuration.
+
+After every phase:
+
+- Verify implementation.
+- Resolve errors.
+- Preserve existing functionality.
+- Do not remove completed modules.
+- Do not replace working code with placeholders.
+- Maintain a completed and pending checklist.
+
+If implementation limits prevent completion in one generation, continue in subsequent steps.
+
+Maintain the existing architecture and do not recreate the project from scratch.
+
+==================================================
+32. FINAL DELIVERY REQUIREMENTS
+==================================================
+
+Deliver:
+
+- Complete NearMe web application.
+- Installable PWA.
+- Six complete languages.
+- Full RTL and LTR support.
+- Real authentication.
+- Real Firebase database.
+- Real GPS discovery.
+- Adjustable search radius.
+- Global discovery.
+- Real matchmaking.
+- Mutual Matches.
+- Internal messaging.
+- Complete user profile management.
+- Photo gallery with maximum 10 photos.
+- Main photo selection.
+- Photo privacy controls.
+- Instagram integration through profile links.
+- Telegram profile links.
+- WhatsApp links.
+- Website links.
+- Email management.
+- Mobile number management.
+- Independent privacy controls for every contact method.
+- Public, Matches Only, and Private visibility.
+- Contact Me section after Match.
+- Secure contact retrieval.
+- Free and VIP subscriptions.
+- Payment infrastructure.
+- User moderation.
+- Admin dashboard.
+- Security rules.
+- Privacy controls.
+- Automated tests.
+- Deployment documentation.
+
+IMPORTANT FINAL ARCHITECTURAL RULES:
+
+1. NearMe must operate independently without a Telegram bot.
+2. All essential functions must work inside the web application.
+3. Social media information must be optional.
+4. Every contact field must have independent privacy settings.
+5. Email and mobile must be private by default.
+6. Contact information must never appear in search cards.
+7. Match-only contact information must require an active mutual Match.
+8. Users must have complete control over their profile photos.
+9. Users must be able to revoke access immediately.
+10. No private information may be exposed through public Firestore documents or APIs.
+11. Never claim production readiness before real backend configuration and testing.
+
+Begin implementation now.
+
+First establish the complete application architecture and premium visual interface.
+
+Then implement Firebase authentication, database integration, profile management, photo gallery, contact management, privacy controls, GPS discovery, matchmaking, messaging, subscriptions, and administration.
+
+Prioritize security, usability, performance, scalability, and a premium international user experience.
+
+Build NearMe as a real application for real users.

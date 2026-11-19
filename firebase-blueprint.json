@@ -1,0 +1,410 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Private user account state, verification status, and membership tier.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "role": { "type": "string", "enum": ["user", "moderator", "admin"], "maxLength": 20 },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended", "banned", "deleted"], "maxLength": 20 },
+        "membershipTier": { "type": "string", "enum": ["free", "vip"], "maxLength": 10 },
+        "emailVerified": { "type": "boolean" },
+        "phoneVerified": { "type": "boolean" },
+        "selfieVerificationStatus": { "type": "string", "enum": ["none", "pending", "verified", "rejected"], "maxLength": 20 },
+        "ageConfirmed18Plus": { "type": "boolean" },
+        "birthDate": { "type": "string", "maxLength": 10, "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "onboardingCompleted": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "accountStatus", "membershipTier", "ageConfirmed18Plus", "birthDate", "onboardingCompleted", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public discovery profile without private contact PII or exact coordinates.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "birthDate": { "type": "string", "maxLength": 10, "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "enum": ["woman", "man", "nonbinary", "other"], "maxLength": 20 },
+        "preferredGender": { "type": "string", "enum": ["woman", "man", "nonbinary", "everyone"], "maxLength": 20 },
+        "country": { "type": "string", "maxLength": 80 },
+        "city": { "type": "string", "maxLength": 80 },
+        "biography": { "type": "string", "maxLength": 600 },
+        "occupation": { "type": "string", "maxLength": 80 },
+        "interests": { "type": "array", "description": "Up to 12 interest identifiers" },
+        "hobbies": { "type": "array", "description": "Up to 12 hobby identifiers" },
+        "languages": { "type": "array", "description": "Up to 10 language codes" },
+        "relationshipGoals": { "type": "string", "enum": ["serious", "casual", "friendship", "networking", "undecided"], "maxLength": 30 },
+        "mainPhotoUrl": { "type": "string", "maxLength": 1024 },
+        "mainPhotoVisibility": { "type": "string", "enum": ["public", "matches", "private"], "maxLength": 16 },
+        "verificationStatus": { "type": "string", "enum": ["unverified", "pending", "verified"], "maxLength": 20 },
+        "profileVisibility": { "type": "string", "enum": ["public", "hidden"], "maxLength": 16 },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended", "banned", "deleted"], "maxLength": 20 },
+        "isOnline": { "type": "boolean" },
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "birthDate", "age", "gender", "preferredGender", "country", "city", "relationshipGoals", "verificationStatus", "profileVisibility", "accountStatus", "createdAt", "updatedAt"]
+    },
+    "ProfilePhoto": {
+      "title": "ProfilePhoto",
+      "description": "User photo gallery item with independent visibility and moderation status.",
+      "type": "object",
+      "properties": {
+        "photoId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "maxLength": 128 },
+        "storagePath": { "type": "string", "maxLength": 512 },
+        "thumbnailPath": { "type": "string", "maxLength": 512 },
+        "url": { "type": "string", "maxLength": 1024 },
+        "thumbnailUrl": { "type": "string", "maxLength": 1024 },
+        "isMain": { "type": "boolean" },
+        "sortOrder": { "type": "number" },
+        "visibility": { "type": "string", "enum": ["public", "matches", "private"], "maxLength": 16 },
+        "moderationStatus": { "type": "string", "enum": ["approved", "pending", "rejected", "flagged"], "maxLength": 20 },
+        "cropX": { "type": "number" },
+        "cropY": { "type": "number" },
+        "zoom": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["photoId", "uid", "storagePath", "url", "isMain", "sortOrder", "visibility", "moderationStatus", "createdAt", "updatedAt"]
+    },
+    "ContactInformation": {
+      "title": "ContactInformation",
+      "description": "Owner-only private contact settings for 6 contact channels.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "instagram": { "type": "object" },
+        "telegram": { "type": "object" },
+        "whatsapp": { "type": "object" },
+        "website": { "type": "object" },
+        "email": { "type": "object" },
+        "mobile": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "instagram", "telegram", "whatsapp", "website", "email", "mobile", "updatedAt"]
+    },
+    "ContactGrant": {
+      "title": "ContactGrant",
+      "description": "Projected contact channels authorized strictly for public or mutual-match viewers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "scope": { "type": "string", "enum": ["public", "matches"], "maxLength": 16 },
+        "instagram": { "type": "string", "maxLength": 200 },
+        "telegram": { "type": "string", "maxLength": 200 },
+        "whatsapp": { "type": "string", "maxLength": 200 },
+        "website": { "type": "string", "maxLength": 300 },
+        "email": { "type": "string", "maxLength": 200 },
+        "mobile": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "scope", "updatedAt"]
+    },
+    "AccountSettings": {
+      "title": "AccountSettings",
+      "description": "Owner-only preferences for language, theme, push notifications, and GDPR consent.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "preferredLanguage": { "type": "string", "enum": ["fa", "en", "tr", "ar", "zh-CN", "zh-TW"], "maxLength": 10 },
+        "theme": { "type": "string", "enum": ["dark", "light"], "maxLength": 10 },
+        "notifications": { "type": "object" },
+        "fcmToken": { "type": "string", "maxLength": 512 },
+        "consentGdpr": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "preferredLanguage", "theme", "notifications", "consentGdpr", "updatedAt"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "Dating and discovery filter preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "minimumAge": { "type": "number" },
+        "maximumAge": { "type": "number" },
+        "preferredGender": { "type": "string", "enum": ["woman", "man", "nonbinary", "everyone"], "maxLength": 20 },
+        "preferredCountry": { "type": "string", "maxLength": 80 },
+        "preferredCity": { "type": "string", "maxLength": 80 },
+        "preferredLanguages": { "type": "array" },
+        "preferredInterests": { "type": "array" },
+        "relationshipGoals": { "type": "string", "maxLength": 30 },
+        "searchRadiusKm": { "type": "number" },
+        "nearbyEnabled": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "minimumAge", "maximumAge", "preferredGender", "searchRadiusKm", "nearbyEnabled", "updatedAt"]
+    },
+    "UserLocation": {
+      "title": "UserLocation",
+      "description": "Quantized geohash location for nearby discovery without exact GPS exposure.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "geohash": { "type": "string", "maxLength": 12 },
+        "approxLat": { "type": "number" },
+        "approxLng": { "type": "number" },
+        "nearbyEnabled": { "type": "boolean" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "geohash", "approxLat", "approxLng", "nearbyEnabled", "expiresAt", "updatedAt"]
+    },
+    "LikeRecord": {
+      "title": "LikeRecord",
+      "description": "Directional like, superlike, or pass interaction.",
+      "type": "object",
+      "properties": {
+        "likeId": { "type": "string", "maxLength": 260 },
+        "fromUid": { "type": "string", "maxLength": 128 },
+        "toUid": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["like", "superlike", "pass"], "maxLength": 16 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["likeId", "fromUid", "toUid", "type", "createdAt"]
+    },
+    "MatchRecord": {
+      "title": "MatchRecord",
+      "description": "Mutual match between two users.",
+      "type": "object",
+      "properties": {
+        "matchId": { "type": "string", "maxLength": 260 },
+        "userA": { "type": "string", "maxLength": 128 },
+        "userB": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["active", "unmatched"], "maxLength": 16 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["matchId", "userA", "userB", "status", "createdAt", "updatedAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Internal real-time chat channel for matched users.",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string", "maxLength": 260 },
+        "matchId": { "type": "string", "maxLength": 260 },
+        "userA": { "type": "string", "maxLength": 128 },
+        "userB": { "type": "string", "maxLength": 128 },
+        "lastMessagePreview": { "type": "string", "maxLength": 200 },
+        "lastSenderUid": { "type": "string", "maxLength": 128 },
+        "unreadA": { "type": "number" },
+        "unreadB": { "type": "number" },
+        "typingA": { "type": "boolean" },
+        "typingB": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["conversationId", "matchId", "userA", "userB", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual message within a matched conversation.",
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "maxLength": 128 },
+        "conversationId": { "type": "string", "maxLength": 260 },
+        "senderUid": { "type": "string", "maxLength": 128 },
+        "recipientUid": { "type": "string", "maxLength": 128 },
+        "text": { "type": "string", "maxLength": 2000 },
+        "imageUrl": { "type": "string", "maxLength": 1024 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["messageId", "conversationId", "senderUid", "recipientUid", "read", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "In-app notification record.",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 128 },
+        "recipientUid": { "type": "string", "maxLength": 128 },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["match", "message", "like", "verification", "subscription", "security"], "maxLength": 24 },
+        "title": { "type": "string", "maxLength": 120 },
+        "body": { "type": "string", "maxLength": 300 },
+        "read": { "type": "boolean" },
+        "link": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["notificationId", "recipientUid", "type", "title", "body", "read", "createdAt"]
+    },
+    "SubscriptionRecord": {
+      "title": "SubscriptionRecord",
+      "description": "User subscription status.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "tier": { "type": "string", "enum": ["free", "vip"], "maxLength": 12 },
+        "plan": { "type": "string", "enum": ["none", "monthly", "quarterly", "annual"], "maxLength": 20 },
+        "status": { "type": "string", "enum": ["active", "canceled", "expired", "incomplete"], "maxLength": 20 },
+        "provider": { "type": "string", "maxLength": 40 },
+        "currentPeriodEnd": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "tier", "plan", "status", "updatedAt"]
+    },
+    "PaymentRecord": {
+      "title": "PaymentRecord",
+      "description": "Verified payment transaction history.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "plan": { "type": "string", "enum": ["monthly", "quarterly", "annual"], "maxLength": 20 },
+        "amountCents": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "status": { "type": "string", "enum": ["pending", "verified", "failed", "refunded"], "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["paymentId", "uid", "plan", "amountCents", "currency", "status", "createdAt"]
+    },
+    "ReportRecord": {
+      "title": "ReportRecord",
+      "description": "User moderation report.",
+      "type": "object",
+      "properties": {
+        "reportId": { "type": "string", "maxLength": 128 },
+        "reporterUid": { "type": "string", "maxLength": 128 },
+        "targetUid": { "type": "string", "maxLength": 128 },
+        "targetType": { "type": "string", "enum": ["profile", "photo", "message", "privacy"], "maxLength": 20 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "reason": { "type": "string", "maxLength": 100 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["open", "reviewing", "resolved", "dismissed"], "maxLength": 20 },
+        "resolutionNote": { "type": "string", "maxLength": 500 },
+        "reviewedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reportId", "reporterUid", "targetUid", "targetType", "reason", "status", "createdAt", "updatedAt"]
+    },
+    "BlockedUser": {
+      "title": "BlockedUser",
+      "description": "User block relationship.",
+      "type": "object",
+      "properties": {
+        "blockId": { "type": "string", "maxLength": 260 },
+        "blockerUid": { "type": "string", "maxLength": 128 },
+        "blockedUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["blockId", "blockerUid", "blockedUid", "createdAt"]
+    },
+    "AdminSettings": {
+      "title": "AdminSettings",
+      "description": "Platform configuration controlled by administrators.",
+      "type": "object",
+      "properties": {
+        "enabledLanguages": { "type": "array" },
+        "maxRadiusKm": { "type": "number" },
+        "defaultDailyLikesFree": { "type": "number" },
+        "defaultDailyLikesVip": { "type": "number" },
+        "maintenanceMode": { "type": "boolean" },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enabledLanguages", "maxRadiusKm", "defaultDailyLikesFree", "defaultDailyLikesVip", "maintenanceMode", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable administrator action log.",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "maxLength": 128 },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "action": { "type": "string", "maxLength": 80 },
+        "targetUid": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logId", "actorUid", "action", "details", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Account metadata and verification state."
+    },
+    "/users/{uid}/private_data/contact_information": {
+      "schema": { "$ref": "#/entities/ContactInformation" },
+      "description": "Owner-only contact channels and per-field privacy settings."
+    },
+    "/users/{uid}/private_data/account_settings": {
+      "schema": { "$ref": "#/entities/AccountSettings" },
+      "description": "Owner-only app settings, notification toggles, and GDPR consent."
+    },
+    "/profiles/{uid}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Public profile document with zero PII."
+    },
+    "/profiles/{uid}/photos/{photoId}": {
+      "schema": { "$ref": "#/entities/ProfilePhoto" },
+      "description": "User photo gallery items with visibility enforcement."
+    },
+    "/profiles/{uid}/contact_grants/{grantLevel}": {
+      "schema": { "$ref": "#/entities/ContactGrant" },
+      "description": "Authorized contact projections (public or matches only)."
+    },
+    "/preferences/{uid}": {
+      "schema": { "$ref": "#/entities/UserPreferences" },
+      "description": "Matchmaking and discovery preferences."
+    },
+    "/user_locations/{uid}": {
+      "schema": { "$ref": "#/entities/UserLocation" },
+      "description": "Quantized geohash locations for nearby discovery."
+    },
+    "/likes/{likeId}": {
+      "schema": { "$ref": "#/entities/LikeRecord" },
+      "description": "Directional likes, superlikes, and passes."
+    },
+    "/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/MatchRecord" },
+      "description": "Mutual matches between two users."
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Matched user conversation metadata."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages inside matched conversations."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "Real-time user notifications."
+    },
+    "/subscriptions/{uid}": {
+      "schema": { "$ref": "#/entities/SubscriptionRecord" },
+      "description": "Membership tier and billing status."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/PaymentRecord" },
+      "description": "Payment history records."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/ReportRecord" },
+      "description": "User moderation reports."
+    },
+    "/blocked_users/{blockId}": {
+      "schema": { "$ref": "#/entities/BlockedUser" },
+      "description": "User block records."
+    },
+    "/admin_settings/{docId}": {
+      "schema": { "$ref": "#/entities/AdminSettings" },
+      "description": "Platform-wide configuration settings."
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable admin audit log entries."
+    }
+  }
+}

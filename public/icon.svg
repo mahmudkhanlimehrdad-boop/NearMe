@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="nmGrad" x1="96" y1="96" x2="416" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF5277" />
+      <stop offset="55%" stop-color="#D664B8" />
+      <stop offset="100%" stop-color="#9B7BFF" />
+    </linearGradient>
+    <linearGradient id="nmSoft" x1="120" y1="120" x2="392" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF8EAA" />
+      <stop offset="100%" stop-color="#9B7BFF" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0D1018" />
+  <path
+    d="M256 410C256 410 112 316 112 204C112 152 152 114 200 114C229 114 248 129 256 144C264 129 283 114 312 114C360 114 400 152 400 204C400 316 256 410 256 410Z"
+    stroke="url(#nmGrad)"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="256" cy="222" r="34" fill="url(#nmSoft)" />
+</svg>

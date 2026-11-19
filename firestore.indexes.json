@@ -1,0 +1,62 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "accountStatus", "order": "ASCENDING" },
+        { "fieldPath": "profileVisibility", "order": "ASCENDING" },
+        { "fieldPath": "lastActiveAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "user_locations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "nearbyEnabled", "order": "ASCENDING" },
+        { "fieldPath": "geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "likes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toUid", "order": "ASCENDING" },
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "recipientUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

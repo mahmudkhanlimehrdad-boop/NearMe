@@ -1,0 +1,113 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --nm-bg-primary: #F6F7FB;
+  --nm-bg-secondary: #FFFFFF;
+  --nm-bg-card: #EEF1F8;
+  --nm-border: rgba(15, 23, 42, 0.10);
+  --nm-text-primary: #0D1018;
+  --nm-text-secondary: #525B70;
+  --nm-accent-primary: #FF5277;
+  --nm-accent-secondary: #9B7BFF;
+  --nm-highlight: #FF8EAA;
+  --nm-success: #35C98A;
+  --nm-error: #F05265;
+}
+
+.dark {
+  --nm-bg-primary: #0D1018;
+  --nm-bg-secondary: #171C28;
+  --nm-bg-card: #202737;
+  --nm-border: rgba(255, 255, 255, 0.08);
+  --nm-text-primary: #FFFFFF;
+  --nm-text-secondary: #A7AFBF;
+  --nm-accent-primary: #FF5277;
+  --nm-accent-secondary: #9B7BFF;
+  --nm-highlight: #FF8EAA;
+  --nm-success: #35C98A;
+  --nm-error: #F05265;
+}
+
+@layer base {
+  html {
+    font-family: 'DM Sans', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--nm-bg-primary);
+    color: var(--nm-text-primary);
+    scroll-behavior: smooth;
+  }
+
+  html[data-lang="fa"] {
+    font-family: 'Vazirmatn', 'Noto Sans Arabic', system-ui, sans-serif;
+  }
+
+  html[data-lang="ar"] {
+    font-family: 'Noto Sans Arabic', 'Vazirmatn', system-ui, sans-serif;
+  }
+
+  html[data-lang="zh-CN"] {
+    font-family: 'Noto Sans SC', 'DM Sans', system-ui, sans-serif;
+  }
+
+  html[data-lang="zh-TW"] {
+    font-family: 'Noto Sans TC', 'DM Sans', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: var(--nm-bg-primary);
+    color: var(--nm-text-primary);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
+  }
+
+  html[data-lang="fa"] h1,
+  html[data-lang="fa"] h2,
+  html[data-lang="fa"] h3,
+  html[data-lang="fa"] h4,
+  html[data-lang="fa"] .font-display {
+    font-family: 'Vazirmatn', 'Noto Sans Arabic', system-ui, sans-serif;
+  }
+
+  html[data-lang="ar"] h1,
+  html[data-lang="ar"] h2,
+  html[data-lang="ar"] h3,
+  html[data-lang="ar"] h4,
+  html[data-lang="ar"] .font-display {
+    font-family: 'Noto Sans Arabic', 'Vazirmatn', system-ui, sans-serif;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@keyframes radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 4.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar-sweep {
+    animation: none;
+  }
+}
