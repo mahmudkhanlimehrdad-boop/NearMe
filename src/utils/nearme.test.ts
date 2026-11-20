@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import {
   buildAuthorizedContacts,
   buildContactGrantsPayload,
@@ -23,6 +24,12 @@ import {
   isRTL,
   toJalali,
 } from './localization';
+import {
+  verifyNearMeWebhookSignature,
+  verifyStripeWebhookSignature,
+  verifyWebhookRequest,
+} from './payments';
+import { extractFirebaseAuthErrorDetails, formatGoogleAuthError } from './authErrors';
 import type { UserProfile } from '../types/nearme';
 
 test('age validation enforces 18+ strictly', () => {
@@ -194,13 +201,6 @@ test('localization handles RTL/LTR, Jalali calendar, and 6-language formatting',
   assert.ok(usd.includes('19.99'));
 });
 
-import crypto from 'node:crypto';
-import {
-  verifyNearMeWebhookSignature,
-  verifyStripeWebhookSignature,
-  verifyWebhookRequest,
-} from './payments';
-
 test('payment webhook verification validates custom HMAC and Stripe timestamped signatures', () => {
   const secret = 'test_webhook_secret_1234567890';
   const payload = Buffer.from(JSON.stringify({ event: 'checkout.completed', uid: 'u1' }));
@@ -224,4 +224,32 @@ test('payment webhook verification validates custom HMAC and Stripe timestamped 
     { valid: true, provider: 'custom' }
   );
   assert.equal(verifyWebhookRequest(payload, {}, secret).valid, false);
+});
+
+test('Firebase Auth error parser captures popup-closed-by-user, unauthorized-domain, and Firestore rules denials', () => {
+  const popupClosedErr = Object.assign(new Error('Firebase: Error (auth/popup-closed-by-user).'), {
+    code: 'auth/popup-closed-by-user',
+    customData: { appName: '[DEFAULT]' },
+  });
+  const popupDetails = extractFirebaseAuthErrorDetails(popupClosedErr);
+  assert.equal(popupDetails.code, 'auth/popup-closed-by-user');
+  assert.equal(popupDetails.isPopupClosedByUser, true);
+  assert.equal(popupDetails.isUnauthorizedDomain, false);
+  const formattedPopup = formatGoogleAuthError(popupClosedErr, 'fa', 'fallback');
+  assert.equal(formattedPopup.code, 'auth/popup-closed-by-user');
+  assert.equal(formattedPopup.isIframePopupIssue, true);
+
+  const domainErr = Object.assign(new Error('Firebase: Error (auth/unauthorized-domain).'), {
+    code: 'auth/unauthorized-domain',
+  });
+  const domainDetails = extractFirebaseAuthErrorDetails(domainErr);
+  assert.equal(domainDetails.code, 'auth/unauthorized-domain');
+  assert.equal(domainDetails.isUnauthorizedDomain, true);
+  const formattedDomain = formatGoogleAuthError(domainErr, 'en', 'fallback', 'example.run.app');
+  assert.equal(formattedDomain.code, 'auth/unauthorized-domain');
+  assert.ok(formattedDomain.message.includes('example.run.app'));
+
+  const rulesErr = new Error('Missing or insufficient permissions.');
+  const formattedRules = formatGoogleAuthError(rulesErr, 'fa', 'fallback');
+  assert.equal(formattedRules.isFirestoreRulesIssue, true);
 });

@@ -4,6 +4,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDocFromServer, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
+import { extractFirebaseAuthErrorDetails } from '../utils/authErrors';
 
 const rawFirestoreDatabaseId = (
   import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID ||
@@ -123,6 +124,28 @@ export async function testConnection(): Promise<{ state: FirebaseConnectionState
     }
     return { state: 'connected' };
   }
+}
+
+export function logFirebaseAuthError(stage: string, err: unknown): void {
+  const details = extractFirebaseAuthErrorDetails(err);
+  const category = details.isPopupClosedByUser
+    ? 'auth/popup-closed-by-user'
+    : details.isUnauthorizedDomain
+      ? 'auth/unauthorized-domain'
+      : details.code || 'auth/error';
+
+  console.error(
+    `[Firebase Auth][${stage}] ${category}:`,
+    {
+      ...details,
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+      inIframe: typeof window !== 'undefined' ? window.self !== window.top : false,
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId,
+    },
+    err
+  );
 }
 
 export { app, firebaseConfig };

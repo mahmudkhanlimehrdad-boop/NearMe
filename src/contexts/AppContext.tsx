@@ -1,5 +1,14 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  beforeAuthStateChanged,
+  getRedirectResult,
+  onAuthStateChanged,
+  onIdTokenChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  type User,
+} from 'firebase/auth';
 import type {
   AccountSettings,
   LanguageCode,
@@ -8,16 +17,28 @@ import type {
   UserPreferences,
   UserProfile,
 } from '../types/nearme';
-import { auth, testConnection, type FirebaseConnectionState } from '../services/firebase';
+import {
+  auth,
+  googleProvider,
+  logFirebaseAuthError,
+  testConnection,
+  type FirebaseConnectionState,
+} from '../services/firebase';
 import {
   getAccountSettings,
   getUserAccount,
   getUserPreferences,
   getUserProfile,
+  initializeUserRecords,
   updateAccountSettings,
 } from '../services/profileService';
 import { subscribeNotifications } from '../services/matchService';
 import { subscribeConversations } from '../services/chatService';
+import {
+  extractFirebaseAuthErrorDetails,
+  formatGoogleAuthError,
+  type GoogleAuthErrorDetail,
+} from '../utils/authErrors';
 import { setAppLanguage } from '../i18n';
 import i18n from '../i18n';
 
@@ -27,10 +48,17 @@ interface MatchCelebrationState {
   peerPhoto?: string;
 }
 
+interface GoogleSignInResult {
+  ok: boolean;
+  redirectTo?: '/nearby' | '/onboarding';
+  error?: GoogleAuthErrorDetail;
+}
+
 interface AppContextValue {
   firebaseUser: User | null;
   authLoading: boolean;
   firebaseStatus: FirebaseConnectionState;
+  lastAuthError: GoogleAuthErrorDetail | null;
   account: UserAccount | null;
   profile: UserProfile | null;
   preferences: UserPreferences | null;
@@ -46,6 +74,8 @@ interface AppContextValue {
   changeLanguage: (lang: LanguageCode) => void;
   toggleTheme: () => void;
   refreshUserData: () => Promise<void>;
+  signInWithGoogle: (birthDate?: string) => Promise<GoogleSignInResult>;
+  clearLastAuthError: () => void;
   logout: () => Promise<void>;
 }
 
@@ -57,6 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [firebaseStatus, setFirebaseStatus] = useState<FirebaseConnectionState>('checking');
+  const [lastAuthError, setLastAuthError] = useState<GoogleAuthErrorDetail | null>(null);
 
   const [account, setAccount] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -70,6 +101,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [language, setLanguage] = useState<LanguageCode>(
     (i18n.language as LanguageCode) || 'en'
   );
+  const languageRef = useRef<LanguageCode>(language);
+  languageRef.current = language;
+
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       const saved = window.localStorage.getItem(THEME_KEY);
@@ -120,28 +154,146 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (sett?.theme) {
         setTheme(sett.theme);
       }
-    } catch {
-      // Handled gracefully during initial onboarding before docs exist
+    } catch (err) {
+      logFirebaseAuthError('refreshUserData', err);
     }
   }, []);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
-      if (user) {
-        await refreshUserData();
-      } else {
-        setAccount(null);
-        setProfile(null);
-        setPreferences(null);
-        setSettings(null);
-        setNotifications([]);
-        setUnreadMessagesCount(0);
+  const finalizeGoogleUser = useCallback(
+    async (user: User, birthDate = '1998-01-01'): Promise<'/nearby' | '/onboarding'> => {
+      const existing = await getUserAccount(user.uid);
+      if (!existing) {
+        await initializeUserRecords({
+          uid: user.uid,
+          displayName: user.displayName || 'NearMe Member',
+          birthDate,
+          emailVerified: user.emailVerified,
+          language: languageRef.current,
+        });
       }
-      setAuthLoading(false);
-    });
-    return () => unsub();
-  }, [refreshUserData]);
+      await refreshUserData();
+      return existing?.onboardingCompleted ? '/nearby' : '/onboarding';
+    },
+    [refreshUserData]
+  );
+
+  // Comprehensive Firebase Authentication event listeners & redirect completion
+  useEffect(() => {
+    let active = true;
+
+    auth
+      .authStateReady()
+      .then(() => {
+        if (!active) return;
+        console.info('[Firebase Auth][authStateReady]', {
+          authenticated: Boolean(auth.currentUser),
+          uid: auth.currentUser?.uid ?? null,
+          providers: auth.currentUser?.providerData.map((p) => p.providerId) ?? [],
+        });
+      })
+      .catch((err) => {
+        logFirebaseAuthError('authStateReady', err);
+      });
+
+    const unsubBeforeAuth = beforeAuthStateChanged(
+      auth,
+      (pendingUser) => {
+        console.info('[Firebase Auth][beforeAuthStateChanged]', {
+          uid: pendingUser?.uid ?? null,
+          email: pendingUser?.email ?? null,
+        });
+      },
+      () => {
+        console.warn('[Firebase Auth][beforeAuthStateChanged] aborted');
+      }
+    );
+
+    const unsubAuthState = onAuthStateChanged(
+      auth,
+      async (user) => {
+        if (!active) return;
+        console.info('[Firebase Auth][onAuthStateChanged]', {
+          authenticated: Boolean(user),
+          uid: user?.uid ?? null,
+          emailVerified: user?.emailVerified ?? false,
+          providers: user?.providerData.map((p) => p.providerId) ?? [],
+        });
+        setFirebaseUser(user);
+        if (user) {
+          setLastAuthError(null);
+          await refreshUserData();
+        } else {
+          setAccount(null);
+          setProfile(null);
+          setPreferences(null);
+          setSettings(null);
+          setNotifications([]);
+          setUnreadMessagesCount(0);
+        }
+        if (active) setAuthLoading(false);
+      },
+      (authErr) => {
+        logFirebaseAuthError('onAuthStateChanged', authErr);
+        if (active) {
+          setLastAuthError(
+            formatGoogleAuthError(authErr, languageRef.current, 'Authentication state error')
+          );
+          setAuthLoading(false);
+        }
+      }
+    );
+
+    const unsubIdToken = onIdTokenChanged(
+      auth,
+      (user) => {
+        console.info('[Firebase Auth][onIdTokenChanged]', {
+          uid: user?.uid ?? null,
+        });
+      },
+      (tokenErr) => {
+        logFirebaseAuthError('onIdTokenChanged', tokenErr);
+        if (active) {
+          setLastAuthError(
+            formatGoogleAuthError(tokenErr, languageRef.current, 'Authentication token error')
+          );
+        }
+      }
+    );
+
+    void getRedirectResult(auth)
+      .then(async (cred) => {
+        if (!active || !cred?.user) return;
+        console.info('[Firebase Auth][getRedirectResult] Google redirect succeeded', {
+          uid: cred.user.uid,
+          email: cred.user.email,
+        });
+        try {
+          await finalizeGoogleUser(cred.user);
+        } catch (err) {
+          logFirebaseAuthError('getRedirectResult.finalize', err);
+          if (active) {
+            setLastAuthError(
+              formatGoogleAuthError(err, languageRef.current, 'Failed to initialize profile')
+            );
+          }
+        }
+      })
+      .catch((err) => {
+        logFirebaseAuthError('getRedirectResult', err);
+        if (active) {
+          setLastAuthError(
+            formatGoogleAuthError(err, languageRef.current, 'Google redirect sign-in failed')
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+      unsubBeforeAuth();
+      unsubAuthState();
+      unsubIdToken();
+    };
+  }, [finalizeGoogleUser, refreshUserData]);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -160,6 +312,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubConvs();
     };
   }, [firebaseUser]);
+
+  const signInWithGoogle = useCallback(
+    async (birthDate = '1998-01-01'): Promise<GoogleSignInResult> => {
+      setLastAuthError(null);
+      try {
+        const user = auth.currentUser ?? (await signInWithPopup(auth, googleProvider)).user;
+        const redirectTo = await finalizeGoogleUser(user, birthDate);
+        return { ok: true, redirectTo };
+      } catch (err) {
+        logFirebaseAuthError('signInWithGoogle', err);
+        const details = extractFirebaseAuthErrorDetails(err);
+        const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+        if (details.isPopupBlocked && !inIframe) {
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return { ok: false };
+          } catch (redirectErr) {
+            logFirebaseAuthError('signInWithGoogle.redirectFallback', redirectErr);
+            const formatted = formatGoogleAuthError(
+              redirectErr,
+              languageRef.current,
+              'Google sign-in failed'
+            );
+            setLastAuthError(formatted);
+            return { ok: false, error: formatted };
+          }
+        }
+        const formatted = formatGoogleAuthError(err, languageRef.current, 'Google sign-in failed');
+        setLastAuthError(formatted);
+        return { ok: false, error: formatted };
+      }
+    },
+    [finalizeGoogleUser]
+  );
+
+  const clearLastAuthError = useCallback(() => {
+    setLastAuthError(null);
+  }, []);
 
   const changeLanguage = useCallback(
     (lang: LanguageCode) => {
@@ -198,6 +388,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         firebaseUser,
         authLoading,
         firebaseStatus,
+        lastAuthError,
         account,
         profile,
         preferences,
@@ -213,6 +404,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         changeLanguage,
         toggleTheme,
         refreshUserData,
+        signInWithGoogle,
+        clearLastAuthError,
         logout,
       }}
     >
