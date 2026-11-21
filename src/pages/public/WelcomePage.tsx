@@ -4,17 +4,21 @@ import { ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NearMeLogo } from '../../components/NearMeLogo';
 import { LanguageSelector } from '../../components/LanguageSelector';
+import { OfflineIndicator, PWAInstallButton } from '../../components/PWAInstallButton';
 
 export const WelcomePage: React.FC = () => {
   const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D1018] text-slate-900 dark:text-white flex flex-col">
-      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between">
+      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between gap-4">
         <Link to="/">
           <NearMeLogo />
         </Link>
-        <LanguageSelector compact />
+        <div className="flex items-center gap-2.5 shrink-0">
+          <PWAInstallButton compact />
+          <LanguageSelector compact />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
@@ -56,6 +60,7 @@ export const WelcomePage: React.FC = () => {
           </div>
         </div>
       </main>
+      <OfflineIndicator />
     </div>
   );
 };

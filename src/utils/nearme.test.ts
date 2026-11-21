@@ -30,6 +30,22 @@ import {
   verifyWebhookRequest,
 } from './payments';
 import { extractFirebaseAuthErrorDetails, formatGoogleAuthError } from './authErrors';
+import {
+  normalizeFirestoreDatabaseId,
+  resolveFirebaseConfig,
+  validateFirebaseAuthSetup,
+  validateFirestoreDatabaseSetup,
+} from './firebaseConfig';
+import {
+  decodeBase64UrlUtf8,
+  encodeBase64UrlUtf8,
+  encodeRawEmail,
+  extractMessageMetadata,
+  GMAIL_SCOPES,
+  validateComposeDraft,
+} from './gmail';
+import { detectPWAEnvironment } from '../hooks/usePWAInstall';
+import firebaseAppletConfig from '../../firebase-applet-config.json';
 import type { UserProfile } from '../types/nearme';
 
 test('age validation enforces 18+ strictly', () => {
@@ -253,3 +269,146 @@ test('Firebase Auth error parser captures popup-closed-by-user, unauthorized-dom
   const formattedRules = formatGoogleAuthError(rulesErr, 'fa', 'fallback');
   assert.equal(formattedRules.isFirestoreRulesIssue, true);
 });
+
+test('Firebase credentials resolve from firebase-applet-config.json with valid authDomain', () => {
+  const configuredDbId =
+    (firebaseAppletConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId || '';
+  const resolved = resolveFirebaseConfig(firebaseAppletConfig, {
+    VITE_FIREBASE_PROJECT_ID: 'stale-project-id',
+    VITE_FIREBASE_AUTH_DOMAIN: 'stale-project.firebaseapp.com',
+    VITE_FIREBASE_FIRESTORE_DATABASE_ID: '(default)',
+  });
+  assert.equal(resolved.projectId, firebaseAppletConfig.projectId);
+  assert.equal(resolved.authDomain, firebaseAppletConfig.authDomain);
+  assert.equal(resolved.apiKey, firebaseAppletConfig.apiKey);
+  assert.equal(resolved.appId, firebaseAppletConfig.appId);
+  assert.equal(resolved.firestoreDatabaseId, configuredDbId);
+
+  const normalized = resolveFirebaseConfig(
+    { ...firebaseAppletConfig, projectId: 'remixed-project-id', authDomain: '' },
+    {
+      VITE_FIREBASE_PROJECT_ID: 'custom-project',
+      VITE_FIREBASE_AUTH_DOMAIN: 'https://custom-project.firebaseapp.com/',
+    }
+  );
+  assert.equal(normalized.projectId, 'custom-project');
+  assert.equal(normalized.authDomain, 'custom-project.firebaseapp.com');
+
+  const validSetup = validateFirebaseAuthSetup(resolved, firebaseAppletConfig);
+  assert.equal(validSetup.valid, true);
+  assert.deepEqual(validSetup.issues, []);
+
+  const mismatchedSetup = validateFirebaseAuthSetup(
+    { ...resolved, authDomain: 'wrong-project.firebaseapp.com' },
+    firebaseAppletConfig
+  );
+  assert.equal(mismatchedSetup.valid, false);
+  assert.ok(mismatchedSetup.issues[0].includes(firebaseAppletConfig.authDomain));
+
+  assert.equal(normalizeFirestoreDatabaseId('(default)'), '');
+  assert.equal(normalizeFirestoreDatabaseId('"(default)"'), '');
+  assert.equal(normalizeFirestoreDatabaseId('custom-db'), 'custom-db');
+
+  const dbCheck = validateFirestoreDatabaseSetup(
+    '(default)',
+    { projectId: resolved.projectId },
+    firebaseAppletConfig
+  );
+  assert.equal(dbCheck.valid, true);
+  assert.equal(dbCheck.sdkDatabaseId, configuredDbId);
+  assert.equal(dbCheck.displayDatabaseId, configuredDbId || '(default)');
+
+  const badDbCheck = validateFirestoreDatabaseSetup(
+    'bad db',
+    { projectId: resolved.projectId },
+    { ...firebaseAppletConfig, firestoreDatabaseId: '' }
+  );
+  assert.equal(badDbCheck.valid, false);
+});
+
+test('Gmail utilities include all 14 scopes, encode UTF-8 MIME messages, parse metadata, and validate drafts', () => {
+  assert.equal(GMAIL_SCOPES.length, 14);
+  assert.ok(GMAIL_SCOPES.includes('https://mail.google.com/'));
+  assert.ok(GMAIL_SCOPES.includes('https://www.googleapis.com/auth/gmail.send'));
+  assert.ok(GMAIL_SCOPES.includes('https://www.googleapis.com/auth/gmail.readonly'));
+  assert.ok(GMAIL_SCOPES.includes('https://www.googleapis.com/auth/gmail.settings.sharing'));
+
+  const encodedRaw = encodeRawEmail({
+    to: 'friend@example.com',
+    subject: 'سلام از NearMe',
+    body: 'متن پیام آزمایشی\nخط دوم',
+  });
+  assert.ok(!encodedRaw.includes('+'));
+  assert.ok(!encodedRaw.includes('/'));
+  assert.ok(!encodedRaw.includes('='));
+
+  const decodedRaw = decodeBase64UrlUtf8(encodedRaw);
+  assert.ok(decodedRaw.includes('To: friend@example.com'));
+  assert.ok(decodedRaw.includes('Subject: =?UTF-8?B?'));
+  assert.ok(decodedRaw.includes('متن پیام آزمایشی\r\nخط دوم'));
+
+  const summary = extractMessageMetadata({
+    id: 'msg-1',
+    threadId: 'thr-1',
+    labelIds: ['INBOX', 'UNREAD'],
+    snippet: 'Preview snippet',
+    payload: {
+      headers: [
+        { name: 'Subject', value: 'Welcome to NearMe' },
+        { name: 'From', value: 'Alice <alice@example.com>' },
+        { name: 'To', value: 'me@example.com' },
+        { name: 'Date', value: 'Thu, 19 Nov 2026 10:00:00 +0000' },
+      ],
+      parts: [
+        {
+          mimeType: 'text/plain',
+          body: { data: encodeBase64UrlUtf8('Hello from Gmail!') },
+        },
+      ],
+    },
+  });
+  assert.equal(summary.id, 'msg-1');
+  assert.equal(summary.isUnread, true);
+  assert.equal(summary.subject, 'Welcome to NearMe');
+  assert.equal(summary.from, 'Alice <alice@example.com>');
+  assert.equal(summary.bodyText, 'Hello from Gmail!');
+
+  assert.deepEqual(
+    validateComposeDraft({ to: 'bad-email', subject: 'Hi', body: 'Hello' }),
+    { valid: false, reason: 'invalidEmail' }
+  );
+  assert.deepEqual(
+    validateComposeDraft({ to: 'a@b.com', subject: '  ', body: 'Hello' }),
+    { valid: false, reason: 'missingSubject' }
+  );
+  assert.deepEqual(
+    validateComposeDraft({ to: 'a@b.com', subject: 'Hi', body: '' }),
+    { valid: false, reason: 'missingBody' }
+  );
+  assert.deepEqual(
+    validateComposeDraft({ to: 'a@b.com', subject: 'Hi', body: 'Hello!' }),
+    { valid: true }
+  );
+});
+
+test('PWA environment detector identifies iOS, modern iPadOS, Android, Desktop, and iframe contexts', () => {
+  assert.deepEqual(
+    detectPWAEnvironment('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', 5, false),
+    { isIOS: true, isAndroid: false, isInIframe: false }
+  );
+  assert.deepEqual(
+    detectPWAEnvironment('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5, true),
+    { isIOS: true, isAndroid: false, isInIframe: true }
+  );
+  assert.deepEqual(
+    detectPWAEnvironment('Mozilla/5.0 (Linux; Android 14; Pixel 8)', 5, false),
+    { isIOS: false, isAndroid: true, isInIframe: false }
+  );
+  assert.deepEqual(
+    detectPWAEnvironment('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 0, true),
+    { isIOS: false, isAndroid: false, isInIframe: true }
+  );
+});
+
+
+

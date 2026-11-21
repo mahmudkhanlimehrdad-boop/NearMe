@@ -8,6 +8,7 @@ import {
   Edit3,
   Globe,
   LogOut,
+  Mail,
   MapPin,
   Settings,
   Share2,
@@ -56,6 +57,7 @@ export const ProfileHubPage: React.FC = () => {
     { to: '/profile/preferences', label: t('profile.datingPreferences'), icon: Sliders },
     { to: '/profile/language', label: t('profile.languageSettings'), icon: Globe },
     { to: '/profile/settings', label: t('profile.accountSettings'), icon: Settings },
+    { to: '/gmail', label: t('gmail.title'), icon: Mail },
     { to: '/subscription', label: t('profile.subscriptionBilling'), icon: Crown },
   ];
 

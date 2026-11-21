@@ -5,32 +5,80 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+export interface PWAEnvironmentInfo {
+  isIOS: boolean;
+  isAndroid: boolean;
+  isInIframe: boolean;
+}
+
+export function detectPWAEnvironment(
+  userAgent: string,
+  maxTouchPoints: number,
+  inIframe: boolean
+): PWAEnvironmentInfo {
+  const ua = userAgent.toLowerCase();
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) || (ua.includes('macintosh') && maxTouchPoints > 1);
+  const isAndroid = /android/.test(ua);
+  return {
+    isIOS,
+    isAndroid,
+    isInIframe: inIframe,
+  };
+}
+
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [env, setEnv] = useState<PWAEnvironmentInfo>({
+    isIOS: false,
+    isAndroid: false,
+    isInIframe: false,
+  });
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const computeStandalone = () =>
+      mediaQuery.matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    setIsInstalled(isStandalone);
 
-    const ua = window.navigator.userAgent.toLowerCase();
-    setIsIOS(/iphone|ipad|ipod/.test(ua));
+    setIsInstalled(computeStandalone());
+
+    let inIframe = false;
+    try {
+      inIframe = window.self !== window.top;
+    } catch {
+      inIframe = true;
+    }
+
+    setEnv(
+      detectPWAEnvironment(
+        window.navigator.userAgent || '',
+        window.navigator.maxTouchPoints || 0,
+        inIframe
+      )
+    );
+
+    const onDisplayModeChange = () => {
+      setIsInstalled(computeStandalone());
+    };
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
+
     const onInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
     };
 
+    mediaQuery.addEventListener('change', onDisplayModeChange);
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
+
     return () => {
+      mediaQuery.removeEventListener('change', onDisplayModeChange);
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
     };
@@ -51,7 +99,9 @@ export function usePWAInstall() {
   return {
     isInstallable: Boolean(deferredPrompt),
     isInstalled,
-    isIOS,
+    isIOS: env.isIOS,
+    isAndroid: env.isAndroid,
+    isInIframe: env.isInIframe,
     install,
   };
 }

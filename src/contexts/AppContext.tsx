@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import {
   beforeAuthStateChanged,
   getRedirectResult,
+  GoogleAuthProvider,
   onAuthStateChanged,
   onIdTokenChanged,
   signInWithPopup,
@@ -19,8 +20,12 @@ import type {
 } from '../types/nearme';
 import {
   auth,
-  googleProvider,
+  ensureFirestoreDatabaseConfig,
+  ensureGmailAuthConfig,
+  ensureGoogleAuthConfig,
+  getCachedGmailAccessToken,
   logFirebaseAuthError,
+  setCachedGmailAccessToken,
   testConnection,
   type FirebaseConnectionState,
 } from '../services/firebase';
@@ -50,7 +55,12 @@ interface MatchCelebrationState {
 
 interface GoogleSignInResult {
   ok: boolean;
-  redirectTo?: '/nearby' | '/onboarding';
+  redirectTo?: '/nearby' | '/onboarding' | '/gmail';
+  error?: GoogleAuthErrorDetail;
+}
+
+interface GmailConnectResult {
+  ok: boolean;
   error?: GoogleAuthErrorDetail;
 }
 
@@ -59,6 +69,8 @@ interface AppContextValue {
   authLoading: boolean;
   firebaseStatus: FirebaseConnectionState;
   lastAuthError: GoogleAuthErrorDetail | null;
+  gmailAccessToken: string | null;
+  gmailConnected: boolean;
   account: UserAccount | null;
   profile: UserProfile | null;
   preferences: UserPreferences | null;
@@ -75,6 +87,11 @@ interface AppContextValue {
   toggleTheme: () => void;
   refreshUserData: () => Promise<void>;
   signInWithGoogle: (birthDate?: string) => Promise<GoogleSignInResult>;
+  signInWithGoogleRedirect: () => Promise<void>;
+  signInWithGmail: (birthDate?: string) => Promise<GoogleSignInResult>;
+  signInWithGmailRedirect: () => Promise<void>;
+  connectGmail: () => Promise<GmailConnectResult>;
+  disconnectGmail: () => void;
   clearLastAuthError: () => void;
   logout: () => Promise<void>;
 }
@@ -88,6 +105,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [authLoading, setAuthLoading] = useState(true);
   const [firebaseStatus, setFirebaseStatus] = useState<FirebaseConnectionState>('checking');
   const [lastAuthError, setLastAuthError] = useState<GoogleAuthErrorDetail | null>(null);
+  const [gmailAccessToken, setGmailAccessToken] = useState<string | null>(() =>
+    getCachedGmailAccessToken()
+  );
 
   const [account, setAccount] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -124,17 +144,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [theme]);
 
   useEffect(() => {
+    const dbConfig = ensureFirestoreDatabaseConfig(
+      import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID
+    );
+    if (!dbConfig.valid) {
+      console.error(
+        '[Firebase Firestore][config] Invalid database configuration:',
+        dbConfig.issues
+      );
+      setFirebaseStatus('error');
+      return;
+    }
+    console.info('[Firebase Firestore][config]', {
+      projectId: dbConfig.projectId,
+      configuredEnvDatabaseId: dbConfig.configuredEnvDatabaseId,
+      databaseId: dbConfig.displayDatabaseId,
+    });
     void testConnection().then((res) => setFirebaseStatus(res.state));
   }, []);
 
-  const refreshUserData = useCallback(async () => {
+  const loadUserData = useCallback(async (): Promise<boolean> => {
     const uid = auth.currentUser?.uid;
     if (!uid) {
       setAccount(null);
       setProfile(null);
       setPreferences(null);
       setSettings(null);
-      return;
+      return true;
     }
     try {
       const [acc, prof, prefs, sett] = await Promise.all([
@@ -154,10 +190,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (sett?.theme) {
         setTheme(sett.theme);
       }
+      return true;
     } catch (err) {
       logFirebaseAuthError('refreshUserData', err);
+      setLastAuthError(
+        formatGoogleAuthError(err, languageRef.current, 'Failed to load profile from Firestore')
+      );
+      return false;
     }
   }, []);
+
+  const refreshUserData = useCallback(async (): Promise<void> => {
+    await loadUserData();
+  }, [loadUserData]);
 
   const finalizeGoogleUser = useCallback(
     async (user: User, birthDate = '1998-01-01'): Promise<'/nearby' | '/onboarding'> => {
@@ -180,6 +225,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Comprehensive Firebase Authentication event listeners & redirect completion
   useEffect(() => {
     let active = true;
+
+    const authConfig = ensureGoogleAuthConfig();
+    if (!authConfig.valid) {
+      console.error('[Firebase Auth][config] Invalid Firebase Auth configuration:', authConfig.issues);
+    } else {
+      console.info('[Firebase Auth][config]', {
+        projectId: authConfig.projectId,
+        authDomain: authConfig.authDomain,
+        providerId: authConfig.provider.providerId,
+      });
+    }
 
     auth
       .authStateReady()
@@ -220,9 +276,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         setFirebaseUser(user);
         if (user) {
-          setLastAuthError(null);
-          await refreshUserData();
+          const loaded = await loadUserData();
+          if (active && loaded) {
+            setLastAuthError(null);
+          }
         } else {
+          setCachedGmailAccessToken(null);
+          setGmailAccessToken(null);
           setAccount(null);
           setProfile(null);
           setPreferences(null);
@@ -263,6 +323,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     void getRedirectResult(auth)
       .then(async (cred) => {
         if (!active || !cred?.user) return;
+        const oauthCred = GoogleAuthProvider.credentialFromResult(cred);
+        if (oauthCred?.accessToken) {
+          setCachedGmailAccessToken(oauthCred.accessToken);
+          setGmailAccessToken(oauthCred.accessToken);
+        }
         console.info('[Firebase Auth][getRedirectResult] Google redirect succeeded', {
           uid: cred.user.uid,
           email: cred.user.email,
@@ -293,7 +358,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubAuthState();
       unsubIdToken();
     };
-  }, [finalizeGoogleUser, refreshUserData]);
+  }, [finalizeGoogleUser, loadUserData]);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -316,8 +381,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const signInWithGoogle = useCallback(
     async (birthDate = '1998-01-01'): Promise<GoogleSignInResult> => {
       setLastAuthError(null);
+      const authConfig = ensureGoogleAuthConfig();
+      if (!authConfig.valid) {
+        const configErr = new Error(
+          `Firebase Auth configuration issue: ${authConfig.issues.join('; ')}`
+        );
+        logFirebaseAuthError('signInWithGoogle.config', configErr);
+        const formatted = formatGoogleAuthError(
+          configErr,
+          languageRef.current,
+          'Firebase configuration error'
+        );
+        setLastAuthError(formatted);
+        return { ok: false, error: formatted };
+      }
+
+      const { auth: configuredAuth, provider } = authConfig;
       try {
-        const user = auth.currentUser ?? (await signInWithPopup(auth, googleProvider)).user;
+        const hasGoogleSession = Boolean(
+          configuredAuth.currentUser?.providerData.some((p) => p.providerId === 'google.com')
+        );
+        const user =
+          hasGoogleSession && configuredAuth.currentUser
+            ? configuredAuth.currentUser
+            : (await signInWithPopup(configuredAuth, provider)).user;
         const redirectTo = await finalizeGoogleUser(user, birthDate);
         return { ok: true, redirectTo };
       } catch (err) {
@@ -326,7 +413,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const inIframe = typeof window !== 'undefined' && window.self !== window.top;
         if (details.isPopupBlocked && !inIframe) {
           try {
-            await signInWithRedirect(auth, googleProvider);
+            await signInWithRedirect(configuredAuth, provider);
             return { ok: false };
           } catch (redirectErr) {
             logFirebaseAuthError('signInWithGoogle.redirectFallback', redirectErr);
@@ -346,6 +433,158 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
     [finalizeGoogleUser]
   );
+
+  const signInWithGmail = useCallback(
+    async (birthDate = '1998-01-01'): Promise<GoogleSignInResult> => {
+      setLastAuthError(null);
+      const authConfig = ensureGmailAuthConfig();
+      if (!authConfig.valid) {
+        const configErr = new Error(
+          `Firebase Auth configuration issue: ${authConfig.issues.join('; ')}`
+        );
+        logFirebaseAuthError('signInWithGmail.config', configErr);
+        const formatted = formatGoogleAuthError(
+          configErr,
+          languageRef.current,
+          'Firebase configuration error'
+        );
+        setLastAuthError(formatted);
+        return { ok: false, error: formatted };
+      }
+
+      const { auth: configuredAuth, provider } = authConfig;
+      try {
+        const result = await signInWithPopup(configuredAuth, provider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          setCachedGmailAccessToken(credential.accessToken);
+          setGmailAccessToken(credential.accessToken);
+        }
+        const baseRedirect = await finalizeGoogleUser(result.user, birthDate);
+        return {
+          ok: true,
+          redirectTo: baseRedirect === '/nearby' ? '/gmail' : baseRedirect,
+        };
+      } catch (err) {
+        logFirebaseAuthError('signInWithGmail', err);
+        const details = extractFirebaseAuthErrorDetails(err);
+        const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+        if (details.isPopupBlocked && !inIframe) {
+          try {
+            await signInWithRedirect(configuredAuth, provider);
+            return { ok: false };
+          } catch (redirectErr) {
+            logFirebaseAuthError('signInWithGmail.redirectFallback', redirectErr);
+            const formatted = formatGoogleAuthError(
+              redirectErr,
+              languageRef.current,
+              'Gmail sign-in failed'
+            );
+            setLastAuthError(formatted);
+            return { ok: false, error: formatted };
+          }
+        }
+        const formatted = formatGoogleAuthError(err, languageRef.current, 'Gmail sign-in failed');
+        setLastAuthError(formatted);
+        return { ok: false, error: formatted };
+      }
+    },
+    [finalizeGoogleUser]
+  );
+
+  const connectGmail = useCallback(async (): Promise<GmailConnectResult> => {
+    setLastAuthError(null);
+    const authConfig = ensureGmailAuthConfig();
+    if (!authConfig.valid) {
+      const configErr = new Error(
+        `Firebase Auth configuration issue: ${authConfig.issues.join('; ')}`
+      );
+      logFirebaseAuthError('connectGmail.config', configErr);
+      const formatted = formatGoogleAuthError(
+        configErr,
+        languageRef.current,
+        'Firebase configuration error'
+      );
+      setLastAuthError(formatted);
+      return { ok: false, error: formatted };
+    }
+
+    const { auth: configuredAuth, provider } = authConfig;
+    try {
+      const result = await signInWithPopup(configuredAuth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential?.accessToken) {
+        const tokenErr = new Error('Failed to retrieve Gmail access token.');
+        const formatted = formatGoogleAuthError(
+          tokenErr,
+          languageRef.current,
+          'Failed to retrieve Gmail access token'
+        );
+        setLastAuthError(formatted);
+        return { ok: false, error: formatted };
+      }
+      setCachedGmailAccessToken(credential.accessToken);
+      setGmailAccessToken(credential.accessToken);
+      await finalizeGoogleUser(result.user);
+      return { ok: true };
+    } catch (err) {
+      logFirebaseAuthError('connectGmail', err);
+      const formatted = formatGoogleAuthError(err, languageRef.current, 'Gmail connection failed');
+      setLastAuthError(formatted);
+      return { ok: false, error: formatted };
+    }
+  }, [finalizeGoogleUser]);
+
+  const signInWithGoogleRedirect = useCallback(async () => {
+    setLastAuthError(null);
+    const authConfig = ensureGoogleAuthConfig();
+    if (!authConfig.valid) {
+      const configErr = new Error(
+        `Firebase Auth configuration issue: ${authConfig.issues.join('; ')}`
+      );
+      logFirebaseAuthError('signInWithGoogleRedirect.config', configErr);
+      setLastAuthError(
+        formatGoogleAuthError(configErr, languageRef.current, 'Firebase configuration error')
+      );
+      return;
+    }
+    try {
+      await signInWithRedirect(authConfig.auth, authConfig.provider);
+    } catch (err) {
+      logFirebaseAuthError('signInWithGoogleRedirect', err);
+      setLastAuthError(
+        formatGoogleAuthError(err, languageRef.current, 'Google redirect sign-in failed')
+      );
+    }
+  }, []);
+
+  const signInWithGmailRedirect = useCallback(async () => {
+    setLastAuthError(null);
+    const authConfig = ensureGmailAuthConfig();
+    if (!authConfig.valid) {
+      const configErr = new Error(
+        `Firebase Auth configuration issue: ${authConfig.issues.join('; ')}`
+      );
+      logFirebaseAuthError('signInWithGmailRedirect.config', configErr);
+      setLastAuthError(
+        formatGoogleAuthError(configErr, languageRef.current, 'Firebase configuration error')
+      );
+      return;
+    }
+    try {
+      await signInWithRedirect(authConfig.auth, authConfig.provider);
+    } catch (err) {
+      logFirebaseAuthError('signInWithGmailRedirect', err);
+      setLastAuthError(
+        formatGoogleAuthError(err, languageRef.current, 'Gmail redirect sign-in failed')
+      );
+    }
+  }, []);
+
+  const disconnectGmail = useCallback(() => {
+    setCachedGmailAccessToken(null);
+    setGmailAccessToken(null);
+  }, []);
 
   const clearLastAuthError = useCallback(() => {
     setLastAuthError(null);
@@ -373,6 +612,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [firebaseUser]);
 
   const logout = useCallback(async () => {
+    setCachedGmailAccessToken(null);
+    setGmailAccessToken(null);
     await signOut(auth);
   }, []);
 
@@ -389,6 +630,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         authLoading,
         firebaseStatus,
         lastAuthError,
+        gmailAccessToken,
+        gmailConnected: Boolean(gmailAccessToken),
         account,
         profile,
         preferences,
@@ -405,6 +648,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleTheme,
         refreshUserData,
         signInWithGoogle,
+        signInWithGoogleRedirect,
+        signInWithGmail,
+        signInWithGmailRedirect,
+        connectGmail,
+        disconnectGmail,
         clearLastAuthError,
         logout,
       }}

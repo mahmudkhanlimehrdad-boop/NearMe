@@ -21,9 +21,11 @@ export default defineConfig(() => {
           theme_color: '#0D1018',
           background_color: '#0D1018',
           display: 'standalone',
+          display_override: ['standalone', 'minimal-ui'],
           orientation: 'portrait-primary',
           start_url: '/',
           scope: '/',
+          categories: ['social', 'lifestyle'],
           icons: [
             {
               src: '/pwa-192x192.png',
@@ -44,11 +46,32 @@ export default defineConfig(() => {
               purpose: 'maskable',
             },
           ],
+          shortcuts: [
+            {
+              name: 'Nearby Discovery',
+              short_name: 'Nearby',
+              url: '/nearby',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
+              name: 'Messages',
+              short_name: 'Messages',
+              url: '/messages',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
+              name: 'Gmail Inbox',
+              short_name: 'Gmail',
+              url: '/gmail',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+          ],
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg}'],
           navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//, /^\/__\//],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

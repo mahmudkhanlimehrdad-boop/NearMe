@@ -5,6 +5,7 @@ import {
   Compass,
   Crown,
   Heart,
+  Mail,
   MapPin,
   MessageCircle,
   Moon,
@@ -31,6 +32,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     theme,
     toggleTheme,
     isAdmin,
+    gmailConnected,
     matchCelebration,
     setMatchCelebration,
   } = useApp();
@@ -125,6 +127,23 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <span className="text-xs text-slate-400 dark:text-[#A7AFBF]">
                 {account?.membershipTier === 'vip' ? 'VIP' : t('subscription.freeName')}
               </span>
+            </Link>
+
+            <Link
+              to="/gmail"
+              className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                isActive('/gmail') || isActive('/profile/gmail')
+                  ? 'bg-[#EA4335]/15 text-[#EA4335]'
+                  : 'text-slate-600 dark:text-[#A7AFBF] hover:bg-slate-100 dark:hover:bg-white/5'
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <Mail className="w-5 h-5 shrink-0 text-[#EA4335]" />
+                <span>{t('nav.gmail')}</span>
+              </span>
+              {gmailConnected && (
+                <span className="w-2 h-2 rounded-full bg-[#35C98A]" aria-label="Connected" />
+              )}
             </Link>
 
             {isAdmin && (

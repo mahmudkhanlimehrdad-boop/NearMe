@@ -16,6 +16,8 @@ import { formatLocalizedDate } from '../../utils/localization';
 import { useApp } from '../../contexts/AppContext';
 import { NearMeLogo } from '../../components/NearMeLogo';
 import { LanguageSelector } from '../../components/LanguageSelector';
+import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import { OfflineIndicator, PWAInstallButton } from '../../components/PWAInstallButton';
 
 export const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -27,8 +29,12 @@ export const RegisterPage: React.FC = () => {
     lastAuthError,
     refreshUserData,
     signInWithGoogle,
+    signInWithGoogleRedirect,
+    signInWithGmail,
+    signInWithGmailRedirect,
     clearLastAuthError,
   } = useApp();
+  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -132,13 +138,39 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  const handleGmail = async () => {
+    setError('');
+    setGoogleError(null);
+    clearLastAuthError();
+    if (!isAdult18Plus(birthDate)) {
+      const msg = t('errors.under18');
+      setError(msg);
+      setGoogleError({ code: 'validation/under18', message: msg });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await signInWithGmail(birthDate);
+      if (res.ok && res.redirectTo) {
+        navigate(res.redirectTo);
+      } else if (res.error) {
+        setGoogleError(res.error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D1018] text-slate-900 dark:text-white flex flex-col">
-      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between">
+      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between gap-4">
         <Link to="/">
           <NearMeLogo />
         </Link>
-        <LanguageSelector compact />
+        <div className="flex items-center gap-2.5 shrink-0">
+          <PWAInstallButton compact />
+          <LanguageSelector compact />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
@@ -245,15 +277,40 @@ export const RegisterPage: React.FC = () => {
             </button>
           </form>
 
-          <button
-            type="button"
-            disabled={loading}
-            aria-busy={loading}
-            onClick={handleGoogle}
-            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-60 transition-colors"
-          >
-            {loading ? t('common.loading') : t('auth.googleSignIn')}
-          </button>
+          <div className="space-y-2.5">
+            <GoogleSignInButton
+              variant="google"
+              label={loading ? t('common.loading') : t('auth.googleSignIn')}
+              loading={loading}
+              onClick={handleGoogle}
+              testId="register-google-btn"
+            />
+            <GoogleSignInButton
+              variant="gmail"
+              label={loading ? t('common.loading') : t('auth.gmailSignIn')}
+              loading={loading}
+              onClick={handleGmail}
+              testId="register-gmail-btn"
+            />
+          </div>
+
+          {isInIframe && (
+            <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-[#A7AFBF] space-y-1.5">
+              <p>
+                {language === 'fa'
+                  ? 'اگر در پنجره بازشده آدرس firebaseapp.com/__/auth/handler متوقف شد یا بسته شد، صفحه را در تب جدید باز کنید (در پیش‌نمایش قاب‌دار مرورگرها ورود گوگل را محدود می‌کنند).'
+                  : 'If Google sign-in stalls on firebaseapp.com/__/auth/handler inside the embedded preview, open sign-in in a new tab.'}
+              </p>
+              <a
+                href={window.location.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center font-semibold text-[#FF5277] hover:underline"
+              >
+                {language === 'fa' ? 'باز کردن صفحه در تب جدید ↗' : 'Open sign-in in a new tab ↗'}
+              </a>
+            </div>
+          )}
 
           {googleError && (
             <div
@@ -261,20 +318,38 @@ export const RegisterPage: React.FC = () => {
               className="p-3 rounded-xl bg-[#F05265]/15 border border-[#F05265]/30 text-xs text-[#F05265] space-y-2"
             >
               <p>{googleError.message}</p>
-              {googleError.isIframePopupIssue &&
-                typeof window !== 'undefined' &&
-                window.self !== window.top && (
-                  <a
-                    href={window.location.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center font-semibold underline"
+              {!isInIframe && (
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => void signInWithGoogleRedirect()}
+                    className="font-semibold underline"
                   >
                     {language === 'fa'
-                      ? 'باز کردن صفحه در تب جدید'
-                      : 'Open sign-in in a new tab'}
-                  </a>
-                )}
+                      ? 'تلاش با تغییر مسیر (بدون پاپ‌آپ)'
+                      : 'Try Google redirect (no popup)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void signInWithGmailRedirect()}
+                    className="font-semibold underline"
+                  >
+                    {language === 'fa'
+                      ? 'ورود جیمیل با تغییر مسیر'
+                      : 'Try Gmail redirect'}
+                  </button>
+                </div>
+              )}
+              {googleError.isIframePopupIssue && isInIframe && (
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center font-semibold underline"
+                >
+                  {language === 'fa' ? 'باز کردن صفحه در تب جدید' : 'Open sign-in in a new tab'}
+                </a>
+              )}
             </div>
           )}
 
@@ -287,6 +362,7 @@ export const RegisterPage: React.FC = () => {
           </div>
         </div>
       </main>
+      <OfflineIndicator />
     </div>
   );
 };
@@ -301,8 +377,12 @@ export const LoginPage: React.FC = () => {
     lastAuthError,
     refreshUserData,
     signInWithGoogle,
+    signInWithGoogleRedirect,
+    signInWithGmail,
+    signInWithGmailRedirect,
     clearLastAuthError,
   } = useApp();
+  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -358,13 +438,33 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const handleGmailLogin = async () => {
+    setError('');
+    setGoogleError(null);
+    clearLastAuthError();
+    setLoading(true);
+    try {
+      const res = await signInWithGmail('1998-01-01');
+      if (res.ok && res.redirectTo) {
+        navigate(res.redirectTo);
+      } else if (res.error) {
+        setGoogleError(res.error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D1018] text-slate-900 dark:text-white flex flex-col">
-      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between">
+      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between gap-4">
         <Link to="/">
           <NearMeLogo />
         </Link>
-        <LanguageSelector compact />
+        <div className="flex items-center gap-2.5 shrink-0">
+          <PWAInstallButton compact />
+          <LanguageSelector compact />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
@@ -420,15 +520,40 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <button
-            type="button"
-            disabled={loading}
-            aria-busy={loading}
-            onClick={handleGoogleLogin}
-            className="w-full py-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-sm font-medium hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-60 transition-colors"
-          >
-            {loading ? t('common.loading') : t('auth.googleSignIn')}
-          </button>
+          <div className="space-y-2.5">
+            <GoogleSignInButton
+              variant="google"
+              label={loading ? t('common.loading') : t('auth.googleSignIn')}
+              loading={loading}
+              onClick={handleGoogleLogin}
+              testId="login-google-btn"
+            />
+            <GoogleSignInButton
+              variant="gmail"
+              label={loading ? t('common.loading') : t('auth.gmailSignIn')}
+              loading={loading}
+              onClick={handleGmailLogin}
+              testId="login-gmail-btn"
+            />
+          </div>
+
+          {isInIframe && (
+            <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#202737] border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-[#A7AFBF] space-y-1.5">
+              <p>
+                {language === 'fa'
+                  ? 'اگر در پنجره بازشده آدرس firebaseapp.com/__/auth/handler متوقف شد یا بسته شد، صفحه را در تب جدید باز کنید (در پیش‌نمایش قاب‌دار مرورگرها ورود گوگل را محدود می‌کنند).'
+                  : 'If Google sign-in stalls on firebaseapp.com/__/auth/handler inside the embedded preview, open sign-in in a new tab.'}
+              </p>
+              <a
+                href={window.location.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center font-semibold text-[#FF5277] hover:underline"
+              >
+                {language === 'fa' ? 'باز کردن صفحه در تب جدید ↗' : 'Open sign-in in a new tab ↗'}
+              </a>
+            </div>
+          )}
 
           {googleError && (
             <div
@@ -436,20 +561,38 @@ export const LoginPage: React.FC = () => {
               className="p-3 rounded-xl bg-[#F05265]/15 border border-[#F05265]/30 text-xs text-[#F05265] space-y-2"
             >
               <p>{googleError.message}</p>
-              {googleError.isIframePopupIssue &&
-                typeof window !== 'undefined' &&
-                window.self !== window.top && (
-                  <a
-                    href={window.location.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center font-semibold underline"
+              {!isInIframe && (
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => void signInWithGoogleRedirect()}
+                    className="font-semibold underline"
                   >
                     {language === 'fa'
-                      ? 'باز کردن صفحه در تب جدید'
-                      : 'Open sign-in in a new tab'}
-                  </a>
-                )}
+                      ? 'تلاش با تغییر مسیر (بدون پاپ‌آپ)'
+                      : 'Try Google redirect (no popup)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void signInWithGmailRedirect()}
+                    className="font-semibold underline"
+                  >
+                    {language === 'fa'
+                      ? 'ورود جیمیل با تغییر مسیر'
+                      : 'Try Gmail redirect'}
+                  </button>
+                </div>
+              )}
+              {googleError.isIframePopupIssue && isInIframe && (
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center font-semibold underline"
+                >
+                  {language === 'fa' ? 'باز کردن صفحه در تب جدید' : 'Open sign-in in a new tab'}
+                </a>
+              )}
             </div>
           )}
 
@@ -460,6 +603,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </main>
+      <OfflineIndicator />
     </div>
   );
 };
@@ -483,11 +627,14 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D1018] text-slate-900 dark:text-white flex flex-col">
-      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between">
+      <header className="h-16 px-6 max-w-5xl w-full mx-auto flex items-center justify-between gap-4">
         <Link to="/">
           <NearMeLogo />
         </Link>
-        <LanguageSelector compact />
+        <div className="flex items-center gap-2.5 shrink-0">
+          <PWAInstallButton compact />
+          <LanguageSelector compact />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">

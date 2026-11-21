@@ -15,7 +15,7 @@ export const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D1018] text-slate-900 dark:text-white flex flex-col">
       {/* 3-Zone Top Navigation Bar */}
       <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-[#0D1018]/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto h-16 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 lg:gap-8">
           <Link to="/" className="shrink-0">
             <NearMeLogo />
           </Link>
@@ -35,11 +35,12 @@ export const LandingPage: React.FC = () => {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <PWAInstallButton compact />
             <LanguageSelector compact />
             <Link
               to={firebaseUser ? '/nearby' : '/login'}
-              className="px-4 py-2 rounded-xl bg-[#FF5277] text-white text-xs sm:text-sm font-semibold hover:bg-[#FF5277]/90 transition-colors whitespace-nowrap shrink-0"
+              className="px-2.5 sm:px-4 py-2 rounded-xl bg-[#FF5277] text-white text-xs sm:text-sm font-semibold hover:bg-[#FF5277]/90 transition-colors whitespace-nowrap shrink-0"
             >
               {firebaseUser ? t('landing.ctaExplore') : t('landing.ctaSecondary')}
             </Link>

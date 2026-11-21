@@ -27,6 +27,7 @@ import {
   NotificationsPage,
 } from './pages/user/AccountLanguagePages';
 import { PaymentHistoryPage, SubscriptionPage } from './pages/user/SubscriptionPages';
+import { GmailPage } from './pages/user/GmailPage';
 
 // Admin Page
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -232,6 +233,22 @@ export default function App() {
               element={
                 <RequireAuth>
                   <PaymentHistoryPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/gmail"
+              element={
+                <RequireAuth>
+                  <GmailPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/profile/gmail"
+              element={
+                <RequireAuth>
+                  <GmailPage />
                 </RequireAuth>
               }
             />
